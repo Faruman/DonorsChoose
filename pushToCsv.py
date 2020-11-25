@@ -10,7 +10,7 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 
 def normalize_string(text: str) -> str:
-    return unicodedata.normalize('NFD', str(text)).encode('latin-1', 'ignore')
+    return unicodedata.normalize('NFD', str(text)).encode('latin-1', 'ignore').decode('latin-1')
 
 def convert_bool(text: str) -> bool:
     if text.lower() == "yes":
@@ -42,7 +42,7 @@ for file in [filename for filename in listdir(root_dir) if filename.endswith(".c
     print(file)
 
     df = pd.read_csv(root_dir + file)
-    df = df.iloc[:10000, :]
+    df = df.iloc[:500000, :]
 
     column_dtypes = [dtype_dict[x] for x in [column_dict[x] for x in list(df.columns)]]
     for column in list(df.columns):
@@ -58,16 +58,14 @@ for file in [filename for filename in listdir(root_dir) if filename.endswith(".c
             df[column] = df[column].apply(normalize_string)
 
         if column == "Project Essay":
-            textAnalysis_colNames = ['Project_Essay_Sentiment_positive', 'Project_Essay_Sentiment_neutral', 'Project_Essay_Sentiment_negative']
-            polarity = np.column_stack(df[column].apply(get_polarity, analyzer= sentiment_analyzer).values)
-            for i, colName in enumerate(textAnalysis_colNames):
-                df[colName] = polarity[i]
+            polarity = df[column].apply(lambda x: sentiment_analyzer.polarity_scores(x)["compound"])
             #eventually implement lda to find topics
             #eventually implement liwc scoring
+            df["sentiment"] = polarity
 
         df[column].astype(dtype_dict[column_dict[column]])
 
-    df.to_sql(file[:-4], con=engine, index=False, if_exists='replace', method='multi')
+    df.to_csv(root_dir + "/sample/" + file[:-4] + "_sample.csv", index=False)
 
     #chunk_size = 100000
     #error_chunks = []
