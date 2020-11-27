@@ -10,6 +10,9 @@ from torch.nn import Embedding, Dropout
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics import precision_recall_curve, roc_auc_score
+from sklearn.model_selection import train_test_split
+
 from sklearn.cluster import KMeans
 from sklearn import preprocessing
 import matplotlib.pyplot as plt
@@ -187,249 +190,249 @@ def get_average_vector(project_ids):
 user_profile['project_vectors'] = user_profile['Projects_Funded'].apply(lambda x: get_average_vector(x))
 
 ## compute the project project interactions
-project_interactions = linear_kernel(xtrain_embeddings, xtrain_embeddings)
+#project_interactions = linear_kernel(xtrain_embeddings, xtrain_embeddings)
 
 ## create the edges of one node with other most similar nodes
-project_edges = {}
-for idx, row in projects_df.iterrows():
-    similar_indices = project_interactions[idx].argsort()[:-100:-1]
-    similar_items = [(project_interactions[idx][i], projects_df['Project ID'][i]) for i in similar_indices]
-    project_edges[row['Project ID']] = similar_items[:20]
+#project_edges = {}
+#for idx, row in projects_df.iterrows():
+#    similar_indices = project_interactions[idx].argsort()[:-100:-1]
+#    similar_items = [(project_interactions[idx][i], projects_df['Project ID'][i]) for i in similar_indices]
+#    project_edges[row['Project ID']] = similar_items[:20]
 
 ## functions to get the most similar projects
-def get_project(id):
-    return projects_df.loc[projects_df['Project ID'] == id]['Project Title'].tolist()[0]
+#def get_project(id):
+#    return projects_df.loc[projects_df['Project ID'] == id]['Project Title'].tolist()[0]
 
-def similar_projects(project_id, num):
-    print("Project: " + get_project(project_id))
-    print("")
-    print("Similar Projects: ")
-    print("")
-    recs = project_edges[project_id][1:num]
-    for rec in recs:
-        print(get_project(rec[1]) + " (score:" + str(rec[0]) + ")")
+#def similar_projects(project_id, num):
+#    print("Project: " + get_project(project_id))
+#    print("")
+#    print("Similar Projects: ")
+#    print("")
+#    recs = project_edges[project_id][1:num]
+#    for rec in recs:
+#        print(get_project(rec[1]) + " (score:" + str(rec[0]) + ")")
 
 ## compute the donor - donor interactions using their profiles and the contex
-user_embeddings = user_profile['project_vectors'].values
+#user_embeddings = user_profile['project_vectors'].values
 
-user_embeddings_matrix = np.zeros(shape=(user_embeddings.shape[0], 300))
-for i,embedding in enumerate(user_embeddings):
-    user_embeddings_matrix[i] = embedding
+#user_embeddings_matrix = np.zeros(shape=(user_embeddings.shape[0], 300))
+#for i,embedding in enumerate(user_embeddings):
+#    user_embeddings_matrix[i] = embedding
 
-donors_interactions = linear_kernel(user_embeddings_matrix, user_embeddings_matrix)
+#donors_interactions = linear_kernel(user_embeddings_matrix, user_embeddings_matrix)
 
 ## iterate for every node (donor) and compute its top similar nodes
-user_edges = {}
-for idx, row in user_profile.iterrows():
-    similar_indices = donors_interactions[idx].argsort()[:-10:-1]
+#user_edges = {}
+#for idx, row in user_profile.iterrows():
+#    similar_indices = donors_interactions[idx].argsort()[:-10:-1]
 
-    similar_items = [(float(donors_interactions[idx][i]), list(user_profile['Donor ID'])[i]) for i in similar_indices]
-    user_edges[row['Donor ID'][0]] = similar_items[1:]
+#    similar_items = [(float(donors_interactions[idx][i]), list(user_profile['Donor ID'])[i]) for i in similar_indices]
+#    user_edges[row['Donor ID'][0]] = similar_items[1:]
 
 ## function to obtain the similar nodes
-def get_donor(id):
-    return user_profile.loc[user_profile['Donor ID'] == id]['Donor ID'].tolist()[0]
+#def get_donor(id):
+#    return user_profile.loc[user_profile['Donor ID'] == id]['Donor ID'].tolist()[0]
 
-def similar_users(donor_id, num):
-    print("Donor: " + get_donor(donor_id))
-    print ("Projects: " + str(user_profile[user_profile['Donor ID'] == donor_id]['Project Title']['<lambda>'].iloc(0)[0]))
+#def similar_users(donor_id, num):
+#    print("Donor: " + get_donor(donor_id))
+#    print ("Projects: " + str(user_profile[user_profile['Donor ID'] == donor_id]['Project Title']['<lambda>'].iloc(0)[0]))
 
-    print("")
-    print("Similar Donors: ")
-    print("")
-    recs = user_edges[donor_id][:num]
-    for rec in recs:
-        print("DonorID: " + get_donor(rec[1]) +" | Score: "+ str(rec[0]) )
-        print ("Projects: " + str(user_profile[user_profile['Donor ID'] == rec[1]]['Project Title']['<lambda>'].iloc(0)[0]))
-        print   ("")
+#    print("")
+#    print("Similar Donors: ")
+#    print("")
+#    recs = user_edges[donor_id][:num]
+#    for rec in recs:
+#        print("DonorID: " + get_donor(rec[1]) +" | Score: "+ str(rec[0]) )
+#        print ("Projects: " + str(user_profile[user_profile['Donor ID'] == rec[1]]['Project Title']['<lambda>'].iloc(0)[0]))
+#        print   ("")
 
 ## creating Donors Graph
-class DonorsGraph():
-    """
-    Class to create the graph for donors and save their information in different nodes.
-    """
+#class DonorsGraph():
+#    """
+#    Class to create the graph for donors and save their information in different nodes.
+#    """
 
-    def __init__(self, graph_name):
-        self.graph = {}
-        self.graph_name = graph_name
+#    def __init__(self, graph_name):
+#        self.graph = {}
+#        self.graph_name = graph_name
 
     # function to add new nodes in the graph
-    def _create_node(self, node_id, node_properties):
-        self.graph[node_id] = node_properties
+#    def _create_node(self, node_id, node_properties):
+#        self.graph[node_id] = node_properties
 
         # function to view the nodes in the graph
 
-    def _view_nodes(self):
-        return self.graph
+#    def _view_nodes(self):
+#        return self.graph
 
     # function to create edges
-    def _create_edges(self, node_id, node_edges):
-        if node_id in self.graph:
-            self.graph[node_id]['edges'] = node_edges
+#    def _create_edges(self, node_id, node_edges):
+#        if node_id in self.graph:
+#            self.graph[node_id]['edges'] = node_edges
 
 ## initialize the donors graph
-dg = DonorsGraph(graph_name = 'donor')
+#dg = DonorsGraph(graph_name = 'donor')
 
 ## iterate in donor profiles and add the nodes
-for idx, row in user_profile.iterrows():
-    node_id = row['Donor ID'].tolist()[0]
-    node_properties = dict(row)
-    dg._create_node(node_id, node_properties)
+#for idx, row in user_profile.iterrows():
+#    node_id = row['Donor ID'].tolist()[0]
+#    node_properties = dict(row)
+#    dg._create_node(node_id, node_properties)
 
 ## using interaction matrices created earlier, create the edges among donor nodes
-def get_donor(id):
-    return user_profile.loc[user_profile['Donor ID'] == id]['Donor ID'].tolist()[0]
+#def get_donor(id):
+#    return user_profile.loc[user_profile['Donor ID'] == id]['Donor ID'].tolist()[0]
 
-def get_similar_donors(donor_id, num):
+#def get_similar_donors(donor_id, num):
     # improve this algorithm - > currently only text, add other features as well
-    recs = user_edges[donor_id][:num]
-    return recs
+#    recs = user_edges[donor_id][:num]
+#    return recs
 
-for idx, row in user_profile.iterrows():
-    node_id = row['Donor ID'].tolist()[0]
-    node_edges = get_similar_donors(donor_id=node_id, num=5)
-    dg._create_edges(node_id, node_edges)
+#for idx, row in user_profile.iterrows():
+#    node_id = row['Donor ID'].tolist()[0]
+#    node_edges = get_similar_donors(donor_id=node_id, num=5)
+#    dg._create_edges(node_id, node_edges)
 
 ## Create the project graphs
-class ProjectsGraph():
-    def __init__(self, graph_name):
-        self.graph = {}
-        self.graph_name = graph_name
+#class ProjectsGraph():
+#    def __init__(self, graph_name):
+#        self.graph = {}
+#        self.graph_name = graph_name
 
-    def _create_node(self, node_id, node_properties):
-        self.graph[node_id] = node_properties
+#    def _create_node(self, node_id, node_properties):
+#        self.graph[node_id] = node_properties
 
-    def _view_nodes(self):
-        return self.graph
+#    def _view_nodes(self):
+#        return self.graph
 
-    def _create_edges(self, node_id, node_edges):
-        if node_id in self.graph:
-            self.graph[node_id]['edges'] = node_edges
+#    def _create_edges(self, node_id, node_edges):
+#        if node_id in self.graph:
+#            self.graph[node_id]['edges'] = node_edges
 
 ## Initialize the project graph and iterate in project proflies to add the nodes with their properties
-pg = ProjectsGraph(graph_name = 'projects')
+#pg = ProjectsGraph(graph_name = 'projects')
 
-for idx, row in projects_df.iterrows():
-    node_id = row['Project ID']
-    node_properties = dict(row)
-    del node_properties['Project Essay']
-    del node_properties['Project Need Statement']
-    del node_properties['Project Short Description']
-    pg._create_node(node_id, node_properties)
+#for idx, row in projects_df.iterrows():
+#    node_id = row['Project ID']
+#    node_properties = dict(row)
+#    del node_properties['Project Essay']
+#    del node_properties['Project Need Statement']
+#    del node_properties['Project Short Description']
+#    pg._create_node(node_id, node_properties)
 
-def get_similar_projects(project_id, num):
-    recs = project_edges[project_id][:num]
-    return recs
+#def get_similar_projects(project_id, num):
+#    recs = project_edges[project_id][:num]
+#    return recs
 
-for idx, row in projects_df.iterrows():
-    node_id = row['Project ID']
-    node_edges = get_similar_projects(project_id=node_id, num=5)
-    pg._create_edges(node_id, node_edges)
+#for idx, row in projects_df.iterrows():
+#    node_id = row['Project ID']
+#    node_edges = get_similar_projects(project_id=node_id, num=5)
+#    pg._create_edges(node_id, node_edges)
 
 ## main flow of generating recommendations using graphs
-def connect_project_donors(project_id):
+#def connect_project_donors(project_id):
     # get the project index
-    proj_row = projects_df[projects_df['Project ID'] == project_id]
-    proj_ind = proj_row.index
+#    proj_row = projects_df[projects_df['Project ID'] == project_id]
+#    proj_ind = proj_row.index
 
     # get the project vector
-    proj_vector = xtrain_embeddings[proj_ind]
+#    proj_vector = xtrain_embeddings[proj_ind]
 
     # match the vector with the user vectors
-    cossim_proj_user = linear_kernel(proj_vector, user_embeddings_matrix)
-    reverse_matrix = cossim_proj_user.T
-    reverse_matrix = np.array([x[0] for x in reverse_matrix])
-    similar_indices = reverse_matrix.argsort()[::-1]
+#    cossim_proj_user = linear_kernel(proj_vector, user_embeddings_matrix)
+#    reverse_matrix = cossim_proj_user.T
+#    reverse_matrix = np.array([x[0] for x in reverse_matrix])
+#    similar_indices = reverse_matrix.argsort()[::-1]
 
     # filter the recommendations
-    projects_similarity = []
-    recommendations = []
-    top_users = [(reverse_matrix[i], user_profile['Donor ID'][i]) for i in similar_indices[:10]]
-    for x in top_users:
-        user_id = x[1]
-        user_row = user_profile[user_profile['Donor ID'] == user_id]
+#    projects_similarity = []
+#    recommendations = []
+#    top_users = [(reverse_matrix[i], user_profile['Donor ID'][i]) for i in similar_indices[:10]]
+#    for x in top_users:
+#        user_id = x[1]
+#        user_row = user_profile[user_profile['Donor ID'] == user_id]
 
         ## to get the appropriate recommendations, filter them using other features
-        cat_count = 0
+#        cat_count = 0
 
         ## Making use of Non Text Features to filter the recommendations
-        subject_categories = proj_row['Project Subject Category Tree'].iloc(0)[0]
-        for sub_cat in subject_categories.split(","):
-            if sub_cat.strip() in user_row['Category_Map'].iloc(0)[0]:
-                cat_count += user_row['Category_Map'].iloc(0)[0][sub_cat.strip()]
+#        subject_categories = proj_row['Project Subject Category Tree'].iloc(0)[0]
+#        for sub_cat in subject_categories.split(","):
+#            if sub_cat.strip() in user_row['Category_Map'].iloc(0)[0]:
+#                cat_count += user_row['Category_Map'].iloc(0)[0][sub_cat.strip()]
 
-        grade_category = proj_row['Project Grade Level Category'].iloc(0)[0]
-        if grade_category in user_row['Category_Map'].iloc(0)[0]:
-            cat_count += user_row['Category_Map'].iloc(0)[0][grade_category]
+#        grade_category = proj_row['Project Grade Level Category'].iloc(0)[0]
+#        if grade_category in user_row['Category_Map'].iloc(0)[0]:
+#            cat_count += user_row['Category_Map'].iloc(0)[0][grade_category]
 
-        metro_type = proj_row['School Metro Type'].iloc(0)[0]
-        if metro_type in user_row['SchoolMetroType_Map'].iloc(0)[0]:
-            cat_count += user_row['SchoolMetroType_Map'].iloc(0)[0][metro_type]
+#        metro_type = proj_row['School Metro Type'].iloc(0)[0]
+#        if metro_type in user_row['SchoolMetroType_Map'].iloc(0)[0]:
+#            cat_count += user_row['SchoolMetroType_Map'].iloc(0)[0][metro_type]
 
-        x = list(x)
-        x.append(cat_count)
-        recommendations.append(x)
+#        x = list(x)
+#        x.append(cat_count)
+#        recommendations.append(x)
 
         ## Find similar donors
-        donor_nodes = dg._view_nodes()
-        if x[1] in donor_nodes:
-            recommendations.extend(donor_nodes[x[1]]['edges'])
+#        donor_nodes = dg._view_nodes()
+#        if x[1] in donor_nodes:
+#            recommendations.extend(donor_nodes[x[1]]['edges'])
 
     ## Find Similar Projects
-    project_nodes = pg._view_nodes()
-    if project_id in project_nodes:
-        projects_similarity.extend(project_nodes[project_id]['edges'])
+#    project_nodes = pg._view_nodes()
+#    if project_id in project_nodes:
+#        projects_similarity.extend(project_nodes[project_id]['edges'])
 
-    return projects_similarity, recommendations
+#    return projects_similarity, recommendations
 
 
-def get_recommended_donors(project_id):
-    # Find the recommended donors and the similar projects for the given project ID
-    sim_projs, recommendations = connect_project_donors(project_id)
+#def get_recommended_donors(project_id):
+#    # Find the recommended donors and the similar projects for the given project ID
+#    sim_projs, recommendations = connect_project_donors(project_id)
 
     # filter the donors who have already donated in the project
-    current_donors = donations_df[donations_df['Project ID'] == project_id]['Donor ID'].tolist()
+#    current_donors = donations_df[donations_df['Project ID'] == project_id]['Donor ID'].tolist()
 
     # Add the donors of similar projects in the recommendation
-    for simproj in sim_projs:
-        recommendations.extend(connect_project_donors(simproj[1])[1])
+#    for simproj in sim_projs:
+#        recommendations.extend(connect_project_donors(simproj[1])[1])
 
     ######## Create final recommended donors dataframe
     # 1. Most relevant donors for a project
     # 2. Similar donors of the relevant donors
     # 3. Donors of the similar project
 
-    recommended_df = pd.DataFrame()
-    recommended_df['Donors'] = [x[1] for x in recommendations]
-    recommended_df['Score'] = [x[0] for x in recommendations]
-    recommended_df = recommended_df.sort_values('Score', ascending=False)
-    recommended_df = recommended_df.drop_duplicates()
+#    recommended_df = pd.DataFrame()
+#    recommended_df['Donors'] = [x[1] for x in recommendations]
+#    recommended_df['Score'] = [x[0] for x in recommendations]
+#    recommended_df = recommended_df.sort_values('Score', ascending=False)
+#    recommended_df = recommended_df.drop_duplicates()
 
-    recommended_df = recommended_df[~recommended_df['Donors'].isin(current_donors)]
-    return recommended_df
+#    recommended_df = recommended_df[~recommended_df['Donors'].isin(current_donors)]
+#    return recommended_df
 
 ## create recommendation for new project
-def _get_results(project_id):
-    proj = projects_df[projects_df['Project ID'] == project_id]
-    print ("Project ID: " + project_id )
-    print ("Project Title: " + proj['Project Title'].iloc(0)[0])
-    print ("")
+#def _get_results(project_id):
+#    proj = projects_df[projects_df['Project ID'] == project_id]
+#    print ("Project ID: " + project_id )
+#    print ("Project Title: " + proj['Project Title'].iloc(0)[0])
+#    print ("")
 
-    print ("Recommended Donors: ")
-    recs = get_recommended_donors(project_id)
-    donated_projects = []
-    for i, row in recs.head(10).iterrows():
-        donor_id = row['Donors']
-        print (donor_id +" | "+ str(row['Score']))
-        donor_projs = user_profile[user_profile['Donor ID'] == donor_id]['Project Title']['<lambda>'].iloc(0)[0]
-        donor_projs = donor_projs.split(",")
-        for donor_proj in donor_projs:
-            if donor_proj not in donated_projects:
-                donated_projects.append(donor_proj)
-    print ("")
-    print ("Previous Projects of the Recommended Donors: ")
-    for proj in donated_projects:
-        print ("-> " + proj)
+#    print ("Recommended Donors: ")
+#    recs = get_recommended_donors(project_id)
+#    donated_projects = []
+#    for i, row in recs.head(10).iterrows():
+#        donor_id = row['Donors']
+#        print (donor_id +" | "+ str(row['Score']))
+#        donor_projs = user_profile[user_profile['Donor ID'] == donor_id]['Project Title']['<lambda>'].iloc(0)[0]
+#        donor_projs = donor_projs.split(",")
+#        for donor_proj in donor_projs:
+#            if donor_proj not in donated_projects:
+#                donated_projects.append(donor_proj)
+#    print ("")
+#    print ("Previous Projects of the Recommended Donors: ")
+#    for proj in donated_projects:
+#        print ("-> " + proj)
 
 ## create the interaction data frames
 interactions = master_df[['Project ID', 'Donor ID', 'Donation Amount']]
@@ -509,10 +512,30 @@ def predict_rating(movieid, userid):
     return rate(model, movieid - 1, userid - 1)
 
 ## with more data, nb_epooch can also be increased
-history = model.fit([PastDonors, PastProjects], Interactions, nb_epoch=2, validation_split=.20)
+train_PastDonors, test_PastDonors, train_PastProjects, test_PastProjects, train_Interactions, test_Interactions = train_test_split(PastDonors, PastProjects, Interactions, test_size=0.2, random_state=42)
+
+history = model.fit([train_PastDonors, train_PastProjects], train_Interactions, nb_epoch=2, validation_data=([test_PastDonors, test_PastProjects], test_Interactions))
+predict_Interactions = model.predict([test_PastDonors, test_PastProjects])
 
 min_val_loss, idx = min((val, idx) for (idx, val) in enumerate(history.history['val_loss']))
 print ('Minimum RMSE at epoch', '{:d}'.format(idx+1), '=', '{:.4f}'.format(math.sqrt(min_val_loss)))
+
+#plot precision recall plot
+def plot_auc(label, score, title):
+    precision, recall, thresholds = precision_recall_curve(label, score)
+    plt.figure(figsize=(15, 5))
+    plt.grid()
+    plt.plot(thresholds, precision[1:], color='r', label='Precision')
+    plt.plot(thresholds, recall[1:], color='b', label='Recall')
+    plt.gca().invert_xaxis()
+    plt.legend(loc='lower right')
+
+    plt.xlabel('Threshold (0.00 - 1.00)')
+    plt.ylabel('Precision / Recall')
+    _ = plt.title(title)
+
+rocauc_score =  roc_auc_score(test_Interactions, predict_Interactions)
+plot_auc(test_Interactions, predict_Interactions, "Baseline recommender sample - ROC AUC: {}".format(rocauc_score))
 
 ## Generate the predictions for a project
 Past_Donors = master_df[['Donor ID', 'Donor City']]
@@ -540,7 +563,7 @@ recommendations['predicted_amt'] = np.exp(recommendations['predicted_amt'])
 recommendations.sort_values(by='predicted_amt', ascending=False).merge(Past_Donors, on='user_id', how='inner', suffixes=['_u', '_m']).head(10)
 
 project_id = "ad51c22f0d31c7dc3103294bdd7fc9c1"
-_get_results(project_id)
+#_get_results(project_id)
 title = projects_df[projects_df['Project ID'] == project_id]['Project Title'].iloc(0)[0]
 print("Project ID: " + project_id)
 print("Project Title: " + title)
