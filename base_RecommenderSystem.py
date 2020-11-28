@@ -3,9 +3,6 @@ from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from tensorflow.keras.layers import Embedding, Reshape, Dropout, Dense, Input, Concatenate
 from tensorflow.keras.models import Sequential, Model
 
-# pytorch modules
-from torch.nn import Embedding, Dropout
-
 # sklearn modules
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
@@ -514,7 +511,7 @@ def predict_rating(movieid, userid):
 ## with more data, nb_epooch can also be increased
 train_PastDonors, test_PastDonors, train_PastProjects, test_PastProjects, train_Interactions, test_Interactions = train_test_split(PastDonors, PastProjects, Interactions, test_size=0.2, random_state=42)
 
-history = model.fit([train_PastDonors, train_PastProjects], train_Interactions, nb_epoch=2, validation_data=([test_PastDonors, test_PastProjects], test_Interactions))
+history = model.fit([train_PastDonors, train_PastProjects], train_Interactions, epochs=2, validation_data=([test_PastDonors, test_PastProjects], test_Interactions))
 predict_Interactions = model.predict([test_PastDonors, test_PastProjects])
 
 min_val_loss, idx = min((val, idx) for (idx, val) in enumerate(history.history['val_loss']))
@@ -535,7 +532,7 @@ def plot_auc(label, score, title):
     _ = plt.title(title)
 
 rocauc_score =  roc_auc_score(test_Interactions, predict_Interactions)
-plot_auc(test_Interactions, predict_Interactions, "Baseline recommender sample - ROC AUC: {}".format(rocauc_score))
+plot_auc(test_Interactions, predict_Interactions, "Baseline recommender sample - ROC AUC: {}".format(roc_auc_score))
 
 ## Generate the predictions for a project
 Past_Donors = master_df[['Donor ID', 'Donor City']]
