@@ -15,8 +15,10 @@ dataloader.do_preprocessing(filter={'Project Current Status': ['Fully Funded']})
 #dataloader.create_clustering()
 
 dataloader.create_interactions()
+dataloader.create_negative_interactions(0.01)
 
 interactions = dataloader.return_interactions_data()
+dataloader.save_interactions_data(folder_path= './data/')
 
 max_donorid = interactions['user_id'].drop_duplicates().max() + 1
 max_projid = interactions['proj_id'].drop_duplicates().max() + 1

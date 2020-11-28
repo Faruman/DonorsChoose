@@ -22,6 +22,7 @@ class DataLoader():
     def __init__(self):
         self.data = pd.DataFrame()
         self.interactions = pd.DataFrame()
+        self.negativeInteractions = pd.DataFrame()
         self.donors = list()
         self.donations = list()
         self.schools = list()
@@ -141,6 +142,26 @@ class DataLoader():
         unique_donors = pd.DataFrame(self.interactions['Donor ID'].unique(), columns=['Donor ID']).reset_index().rename(columns={'index': 'user_id'})
         unique_projs = pd.DataFrame(self.interactions['Project ID'].unique(), columns=['Project ID']).reset_index().rename(columns={'index': 'proj_id'})
         self.interactions = self.interactions.merge(unique_donors, how="left", on="Donor ID").merge(unique_projs, how="left", on="Project ID")
+        self.donors_dict = dict(zip(unique_donors['user_id'], unique_donors['Donor ID']))
+        self.projs_dict = dict(zip(unique_projs['proj_id'], unique_projs['Project ID']))
+
+    def create_negative_interactions(self, percentage: float):
+        logging.info("DataLoader - Create negative samples")
+        self.negativeInteractions = pd.DataFrame(columns= ['Project ID', 'Donor ID', 'Donation Amount', 'user_id', 'proj_id'])
+        n_negative_sample = int(self.interactions.shape[0] * percentage)
+        interactions_group = self.interactions.groupby('user_id')['proj_id'].apply(list)
+        interactions_group = dict(zip(list(interactions_group.index), list(interactions_group)))
+        def create_negative_sample(row, interactions_group):
+            positive_samples = interactions_group[row['user_id']]
+            found = False
+            while not found:
+                proj_id = int(pd.Series(self.projs_dict.keys()).sample(1).values)
+                if not proj_id in positive_samples:
+                    row['Project ID'] = self.projs_dict[proj_id]
+                    row['proj_id'] = proj_id
+                    found = True
+            return row
+        self.interactions.sample(n_negative_sample).progress_apply(create_negative_sample, args=(interactions_group, ), axis=1)
 
     def return_master_data(self):
         return self.data
@@ -149,10 +170,10 @@ class DataLoader():
         self.data.to_hdq(os.path.join(folder_path + 'master_data.parquet.gzip'), compression='gzip')
 
     def return_interactions_data(self):
-        return self.interactions
+        return self.interactions.append(self.negativeInteractions)
 
     def save_interactions_data(self, folder_path: str):
-        self.interactions.to_hdq(os.path.join(folder_path + 'interactions_data.parquet.gzip'), compression='gzip')
+        self.interactions.append(self.negativeInteractions).to_hdq(os.path.join(folder_path + 'interactions_data.parquet.gzip'), compression='gzip')
 
 
 
