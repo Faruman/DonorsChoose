@@ -17,29 +17,22 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from sklearn.model_selection import train_test_split
-
 class Recommender(nn.Module):
     def __init__(self, n_donorid, n_projectid, embedding_size):
         super(Recommender, self).__init__()
         self.n_donorid = n_donorid
         self.n_projectid = n_projectid
         self.embedding_size = embedding_size
-        self.EmbeddingDonor = nn.Embedding(num_embeddings=embedding_size, embedding_dim=n_donorid)
-        self.EmbeddingProject = nn.Embedding(num_embeddings=embedding_size, embedding_dim=n_projectid)
-        self.linear = nn.Sequential(
-            nn.Linear(embedding_size, 128),
-            F.relu,
-            nn.Linear(128, 1)
-        )
+        self.EmbeddingDonor = nn.Embedding(num_embeddings=n_donorid, embedding_dim=embedding_size)
+        self.EmbeddingProject = nn.Embedding(num_embeddings=n_projectid, embedding_dim=embedding_size)
+        self.linear1 = nn.Linear(embedding_size*2, 128)
+        self.linear2 = nn.Linear(128, 1)
 
     def forward(self, input):
-        donor_embedding = self.EmbeddingDonor(input)
-        project_embedding = self.EmbeddingProject(input)
-        donor_vecs = torch.reshape(donor_embedding, (self.embedding_size))
-        project_vecs = torch.reshape(project_embedding, (self.embedding_size))
-        input_vecs = torch.cat((donor_vecs, project_vecs), dim=1)
-        y = self.linear(input_vecs)
+        donor_embedding = self.EmbeddingDonor(input[:, 0])
+        project_embedding = self.EmbeddingProject(input[:, 1])
+        input_vecs = torch.cat((donor_embedding, project_embedding), dim=1)
+        y = self.linear2(F.relu(self.linear1(input_vecs)))
         return y
 
 class baseRecommender():
@@ -59,7 +52,7 @@ class baseRecommender():
         self.criterion = self.criterion.to(device)
 
 
-    def provide_data(self, df: pd.DataFrame, train_portion:float= 0.8):
+    def load_data(self, df: pd.DataFrame, train_portion:float= 0.8):
         self.train = df.sample(frac= train_portion, random_state= 42)
         self.test = df.sample(frac= 1- train_portion, random_state=42)
 
@@ -67,15 +60,18 @@ class baseRecommender():
         self.train['score'] = self.train['Donation Amount'].apply(scoring_fct)
         self.test['score'] = self.test['Donation Amount'].apply(scoring_fct)
 
-    def generate_dataLoader(self, batch_size:int = 64):
-        self.train_dataLoader = DataLoader((self.train[['user_id', 'proj_id']], self.train['score']), batch_size=batch_size)
-        self.test_dataLoader = DataLoader(self.test, batch_size=batch_size)
+    def generate_dataLoader(self, batch_size:int = 256):
+        self.train_dataLoader = DataLoader(torch.LongTensor(self.train[['user_id', 'proj_id', 'score']].values), batch_size=batch_size)
+        self.test_dataLoader = DataLoader(torch.LongTensor(self.test[['user_id', 'proj_id', 'score']].values), batch_size=batch_size)
 
     def train_model(self, num_epochs:int, model_dir:str):
         self.model.train()
 
         for epoch in range(num_epochs):
-            for batch_idx, (data, target) in enumerate(self.train_dataLoader):
+            for batch_idx, data in enumerate(self.train_dataLoader):
+                target = data[:, -1].type(torch.FloatTensor).unsqueeze(1)
+                data = data[:, :-1]
+
                 data = data.to(self.device)
                 target = target.flatten().to(self.device)
 
@@ -86,25 +82,30 @@ class baseRecommender():
                 self.optimizer.step()
 
                 if (batch_idx + 1) % 100 == 0:
-                    print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(epoch, (batch_idx + 1) * len(data), len(self.train_dataLoader),100. * (batch_idx + 1) / len(self.train_dataLoader), loss.item()))
+                    print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(epoch, (batch_idx + 1) * self.train_dataLoader.batch_size, len(self.train_dataLoader) * self.train_dataLoader.batch_size, 100. * (batch_idx + 1) / len(self.train_dataLoader), loss.item()))
 
         # save the model
-        torch.save(self.model.state_dict(), model_dir + "simpleNet_4L_2.pt")
+        torch.save(self.model.state_dict(), model_dir + "baseLineRecommender.pt")
 
     def evaluate_model(self):
         self.model.eval()
-        evaluation_df = pd.DataFrame()
+        evaluation_df = pd.DataFrame(columns=['target', 'pred'])
 
-        for batch_idx, (data, target) in enumerate(self.test_dataLoader)
+        for batch_idx, data in enumerate(self.test_dataLoader):
+            target = data[:, -1].type(torch.FloatTensor).unsqueeze(1)
+            data = data[:, :-1]
+
             data = data.to(self.device)
             target = target.flatten().to(self.device)
 
             output = self.model(data)
 
-            pred = output.data.max(1, keepdim=True)[1]
-            correct = pred.eq(target.data.view_as(pred)).cpu().detach().sum()
+            pred = (output>0.5).float()
+
+            evaluation_df.append(pd.DataFrame({'target': target.cpu().numpy().flatten(), 'pred': pred.cpu().numpy().flatten()}))
 
             if (batch_idx + 1) % 100 == 0:
-                print('Evaluation: {}/{} ({:.0f}%)'.format((batch_idx + 1) * len(data), len(self.train_dataLoader), 100. * (batch_idx + 1) / len(self.train_dataLoader)))
+                print('Evaluation: {}/{} ({:.0f}%)'.format((batch_idx + 1) * self.train_dataLoader.batch_size, len(self.test_dataLoader) * self.test_dataLoader.batch_size, 100. * (batch_idx + 1) / len(self.test_dataLoader)))
 
+        return evaluation_df
 

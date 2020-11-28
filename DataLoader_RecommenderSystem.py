@@ -21,6 +21,7 @@ tqdm.pandas()
 class DataLoader():
     def __init__(self):
         self.data = pd.DataFrame()
+        self.interactions = pd.DataFrame()
         self.donors = list()
         self.donations = list()
         self.schools = list()
@@ -80,9 +81,9 @@ class DataLoader():
         #TODO: Add length of project to dataData
 
 
-    def create_embeddings(self):
+    def create_embeddings(self, embedding_type= settings.EMBEDDING_TYPE):
         logging.info("DataLoader - Create embeddings")
-        if self.settings.EMBEDDING_TYPE == "fasttext":
+        if embedding_type == "fasttext":
             embeddingModel = fasttext.load_model(self.settings.EMBEDDING_FILE_FASTTEXT)
             def generate_doc_vectors(s):
                 words = str(s).lower().split()
@@ -105,13 +106,13 @@ class DataLoader():
         else:
            Exception("Embedding needs to be defined, adjust settings.py")
 
-    def create_clustering(self, search_optimal_size:bool = False):
+    def create_clustering(self, search_optimal_size:bool = False, clustering_type= settings.CLUSTERING_TYPE):
         logging.info("DataLoader - Create clusters")
         if 'area_context_cluster' in self.external:
             features = list(set(self.external) - set(['id', 'area_context_cluster']))
         else:
             features = list(set(self.external) - set(['id']))
-        if settings.CLUSTERING_TYPE == "KMeans":
+        if clustering_type == "KMeans":
             if search_optimal_size == True:
                 inretia = []
                 min_clust = 2
@@ -135,10 +136,23 @@ class DataLoader():
         else:
             Exception("Cluster needs to be defined, adjust settings.py")
 
+    def create_interactions(self):
+        self.interactions = self.data[['Project ID', 'Donor ID', 'Donation Amount']]
+        unique_donors = pd.DataFrame(self.interactions['Donor ID'].unique(), columns=['Donor ID']).reset_index().rename(columns={'index': 'user_id'})
+        unique_projs = pd.DataFrame(self.interactions['Project ID'].unique(), columns=['Project ID']).reset_index().rename(columns={'index': 'proj_id'})
+        self.interactions = self.interactions.merge(unique_donors, how="left", on="Donor ID").merge(unique_projs, how="left", on="Project ID")
+
     def return_master_data(self):
         return self.data
 
     def save_master_data(self, folder_path: str):
-        return self.data.to_hdq(os.path.join(folder_path + 'df.parquet.gzip'), compression='gzip')
+        self.data.to_hdq(os.path.join(folder_path + 'master_data.parquet.gzip'), compression='gzip')
+
+    def return_interactions_data(self):
+        return self.interactions
+
+    def save_interactions_data(self, folder_path: str):
+        self.interactions.to_hdq(os.path.join(folder_path + 'interactions_data.parquet.gzip'), compression='gzip')
+
 
 
