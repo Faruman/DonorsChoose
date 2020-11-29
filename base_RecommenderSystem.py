@@ -36,7 +36,7 @@ class Recommender(nn.Module):
         return y
 
 class baseRecommender():
-    def __init__(self, max_userid: int, max_movieid: int, embedding_size: int, device:str= "cpu"):
+    def __init__(self, max_userid: int, max_movieid: int, embedding_size: int, device:str= "cpu", learning_rate: float= 1e-4):
         self.device = device
         self.max_userid = max_userid
         self.max_movieid = max_movieid
@@ -47,12 +47,14 @@ class baseRecommender():
         self.model = Recommender(max_userid, max_movieid, embedding_size)
         self.model = self.model.to(device)
         # setup optimizer
-        self.optimizer = optim.Adam(params=self.model.parameters(), lr=1e-4)
+        self.optimizer = optim.Adam(params=self.model.parameters(), lr=learning_rate)
         self.criterion = nn.MSELoss()
         self.criterion = self.criterion.to(device)
 
 
     def load_data(self, df: pd.DataFrame, train_portion:float= 0.8):
+        df["user_id"] = df["user_id"].astype(int)
+        df["proj_id"] = df["proj_id"].astype(int)
         self.train = df.sample(frac= train_portion, random_state= 42)
         self.test = df.sample(frac= 1- train_portion, random_state=42)
 
@@ -73,7 +75,7 @@ class baseRecommender():
                 data = data[:, :-1]
 
                 data = data.to(self.device)
-                target = target.flatten().to(self.device)
+                target = target.to(self.device)
 
                 self.optimizer.zero_grad()
                 output = self.model(data)
@@ -87,22 +89,25 @@ class baseRecommender():
         # save the model
         torch.save(self.model.state_dict(), model_dir + "baseLineRecommender.pt")
 
-    def evaluate_model(self):
+    def load_model(self, model_path: str):
+        self.model.load_state_dict(torch.load(model_path))
+
+    def evaluate_model(self, pred_threshold: float= 0.5):
         self.model.eval()
-        evaluation_df = pd.DataFrame(columns=['target', 'pred'])
+        evaluation_df = pd.DataFrame(columns=['target', 'pred', 'prob'])
 
         for batch_idx, data in enumerate(self.test_dataLoader):
             target = data[:, -1].type(torch.FloatTensor).unsqueeze(1)
             data = data[:, :-1]
 
             data = data.to(self.device)
-            target = target.flatten().to(self.device)
+            target = target.to(self.device)
 
             output = self.model(data)
 
-            pred = (output>0.5).float()
+            pred = (output>pred_threshold).float()
 
-            evaluation_df.append(pd.DataFrame({'target': target.cpu().numpy().flatten(), 'pred': pred.cpu().numpy().flatten()}))
+            evaluation_df = evaluation_df.append(pd.DataFrame({'target': target.cpu().detach().numpy().flatten(), 'pred': pred.cpu().detach().numpy().flatten(), 'prob': output.cpu().detach().numpy().flatten()}))
 
             if (batch_idx + 1) % 100 == 0:
                 print('Evaluation: {}/{} ({:.0f}%)'.format((batch_idx + 1) * self.train_dataLoader.batch_size, len(self.test_dataLoader) * self.test_dataLoader.batch_size, 100. * (batch_idx + 1) / len(self.test_dataLoader)))

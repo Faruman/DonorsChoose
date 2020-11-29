@@ -17,6 +17,10 @@ import logging
 from tqdm import tqdm
 tqdm.pandas()
 
+import time
+
+import random
+
 
 class DataLoader():
     def __init__(self):
@@ -149,31 +153,44 @@ class DataLoader():
         logging.info("DataLoader - Create negative samples")
         self.negativeInteractions = pd.DataFrame(columns= ['Project ID', 'Donor ID', 'Donation Amount', 'user_id', 'proj_id'])
         n_negative_sample = int(self.interactions.shape[0] * percentage)
-        interactions_group = self.interactions.groupby('user_id')['proj_id'].apply(list)
-        interactions_group = dict(zip(list(interactions_group.index), list(interactions_group)))
-        def create_negative_sample(row, interactions_group):
-            positive_samples = interactions_group[row['user_id']]
-            found = False
-            while not found:
-                proj_id = int(pd.Series(self.projs_dict.keys()).sample(1).values)
-                if not proj_id in positive_samples:
-                    row['Project ID'] = self.projs_dict[proj_id]
-                    row['proj_id'] = proj_id
-                    found = True
-            return row
-        self.interactions.sample(n_negative_sample).progress_apply(create_negative_sample, args=(interactions_group, ), axis=1)
+
+        while n_negative_sample > 0:
+            negative_samples = self.interactions.sample(n_negative_sample, replace=True)
+            negative_samples['proj_id'] = random.choices(list(self.projs_dict.keys()), k=n_negative_sample)
+            negative_samples = pd.merge(negative_samples, self.interactions, on=['proj_id', 'user_id'], how="outer", indicator=True, suffixes=("", "_y")).query('_merge=="left_only"')
+            negative_samples = negative_samples.drop(['Project ID_y', 'Donor ID_y', 'Donation Amount_y', '_merge'], axis=1)
+            negative_samples['Donation Amount'] = 0
+            negative_samples['Project ID'] = negative_samples['proj_id'].apply(lambda x: self.projs_dict[x])
+            self.negativeInteractions = self.negativeInteractions.append(negative_samples)
+            n_negative_sample -= negative_samples.shape[0]
+
+        #less efficient way
+        #interactions_group = self.interactions.groupby('user_id')['proj_id'].apply(list)
+        #interactions_group = dict(zip(list(interactions_group.index), list(interactions_group)))
+        #sample_set = set(self.projs_dict.keys())
+
+        #def create_negative_sample(row, interactions_group, samples):
+        #    positive_samples = interactions_group[row['user_id']]
+        #    available_samples = samples - set(positive_samples)
+        #    proj_id = random.sample(available_samples, 1)[0]
+        #    row['Project ID'] = self.projs_dict[proj_id]
+        #    row['proj_id'] = proj_id
+        #    row['Donation Amount'] = 0
+        #    return row
+
+        #self.interactions.sample(n_negative_sample, replace=True).progress_apply(create_negative_sample, args=(interactions_group,sample_set), axis=1)
 
     def return_master_data(self):
         return self.data
 
     def save_master_data(self, folder_path: str):
-        self.data.to_hdq(os.path.join(folder_path + 'master_data.parquet.gzip'), compression='gzip')
+        self.data.to_pickle(os.path.join(folder_path + 'master_data.pkl'), compression='gzip')
 
     def return_interactions_data(self):
         return self.interactions.append(self.negativeInteractions)
 
     def save_interactions_data(self, folder_path: str):
-        self.interactions.append(self.negativeInteractions).to_hdq(os.path.join(folder_path + 'interactions_data.parquet.gzip'), compression='gzip')
+        self.interactions.append(self.negativeInteractions).to_pickle(os.path.join(folder_path + 'interactions_data.pkl'), compression='gzip')
 
 
 
