@@ -17,36 +17,48 @@ wandb.init(project="DonorsChoose", config=args)
 args = wandb.config
 
 def main():
-    if not (os.path.isfile("./data/interactions_data.pkl.gz") & os.path.isfile("./data/master_data.pkl.gz")):
+    if args["use_sample"] == "True":
+        masterdata_path = os.path.join("./data/" + 'master_data_{}_{}.pkl.gz'.format(args["embedding"], args["clustering"]))
+        interactionsdata_path = os.path.join("./data/" + "interactions_data.pkl.gz")
+    else:
+        masterdata_path = os.path.join("./data/sample/" + 'master_data_{}_{}.pkl.gz'.format(args["embedding"], args["clustering"]))
+        interactionsdata_path = os.path.join("./data/sample/" + "interactions_data.pkl.gz")
+
+    if not (os.path.isfile(masterdata_path) & os.path.isfile(interactionsdata_path)):
         dataloader = DataLoader()
-        #dataloader.load_from_file(donations_path= r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\donations.csv",
-        #                          donors_path= r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\donors.csv",
-        #                          projects_path= r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\projects.csv",
-        #                          schools_path= r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\schools.csv",
-        #                          external_path=r"D:\Programming\Python\DonorsChoose\data\EconomicIndicators\ZipCodes_AreaContext.csv")
-        dataloader.load_from_file(donations_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\sample\donation_sample_V2.csv",
-                                  donors_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\sample\donor_sample_V2.csv",
-                                  projects_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\sample\project_sample_V2.csv",
-                                  schools_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\sample\school_sample_V2.csv",
-                                  external_path=r"D:\Programming\Python\DonorsChoose\data\EconomicIndicators\ZipCodes_AreaContext.csv")
+        if args["use_sample"] == "True":
+            dataloader.load_from_file(donations_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\sample\donation_sample_V2.csv",
+                                        donors_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\sample\donor_sample_V2.csv",
+                                        projects_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\sample\project_sample_V2.csv",
+                                        schools_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\sample\school_sample_V2.csv",
+                                        external_path=r"D:\Programming\Python\DonorsChoose\data\EconomicIndicators\ZipCodes_AreaContext.csv")
+        else:
+            dataloader.load_from_file(donations_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\donations.csv",
+                                        donors_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\donors.csv",
+                                        projects_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\projects.csv",
+                                        schools_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\schools.csv",
+                                        external_path=r"D:\Programming\Python\DonorsChoose\data\EconomicIndicators\ZipCodes_AreaContext.csv")
         dataloader.do_preprocessing()
-        #dataloader.do_preprocessing(filter={'Project Current Status': ['Fully Funded']})
-        dataloader.create_embeddings(args["embedding"])
-        dataloader.create_clustering()
+        if args["embedding"]:
+            dataloader.create_embeddings(args["embedding"])
+
+        if args["clustering"]:
+            dataloader.create_clustering(clustering_type=args["clustering"])
 
         data = dataloader.return_master_data()
-        dataloader.save_master_data(folder_path='./data/')
 
         dataloader.create_interactions()
         dataloader.filter_interactions(2)
         dataloader.create_negative_interactions(1)
 
         interactions = dataloader.return_interactions_data()
-        dataloader.save_interactions_data(folder_path= './data/')
+
+        dataloader.save_master_data(data_path= masterdata_path)
+        dataloader.save_interactions_data(data_path= interactionsdata_path)
 
     else:
-        data = pd.read_pickle("./data/master_data_{}.pkl.gz".format(args["embedding"]))
-        interactions = pd.read_pickle("./data/interactions_data.pkl.gz")
+        data = pd.read_pickle(masterdata_path)
+        interactions = pd.read_pickle(interactionsdata_path)
 
     max_donorid = interactions['user_id'].drop_duplicates().max() + 1
     max_projid = interactions['proj_id'].drop_duplicates().max() + 1

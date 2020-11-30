@@ -196,14 +196,14 @@ class DataLoader():
     def return_master_data(self):
         return self.data
 
-    def save_master_data(self, folder_path: str):
-        self.data.to_pickle(os.path.join(folder_path + 'master_data_{}.pkl.gz'.format(self.embedding_type)), compression='gzip')
+    def save_master_data(self, data_path: str):
+        self.data.to_pickle(data_path, compression='gzip')
 
     def return_interactions_data(self):
         return self.interactions.append(self.negativeInteractions)
 
-    def save_interactions_data(self, folder_path: str):
-        self.interactions.append(self.negativeInteractions).to_pickle(os.path.join(folder_path + 'interactions_data.pkl.gz'), compression='gzip')
+    def save_interactions_data(self, data_path: str):
+        self.interactions.append(self.negativeInteractions).to_pickle(data_path, compression='gzip')
 
 
 
