@@ -5,3 +5,5 @@ EMBEDDING_FILE_FASTTEXT = r"D:\Programming\Python\DonorsChoose\data\fasttext\cc.
 
 CLUSTERING_TYPE = "KMeans"
 KMEANS_CLUSTERS = 4
+
+#TODO: Merge settings and config.json

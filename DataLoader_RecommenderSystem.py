@@ -17,9 +17,10 @@ import logging
 from tqdm import tqdm
 tqdm.pandas()
 
-import time
-
 import random
+
+from transformers import DistilBertTokenizer
+tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
 
 
 class DataLoader():
@@ -33,6 +34,7 @@ class DataLoader():
         self.projects = list()
         self.external = list()
         self.settings = settings
+        self.embedding_type = "none"
 
     def load_from_file(self, donors_path: str, donations_path: str, schools_path: str, projects_path: str, external_path: str):
         logging.info("DataLoader - Load data from csvs")
@@ -81,12 +83,12 @@ class DataLoader():
         self.data['Project Essay'] = self.data['Project Essay'].fillna(" ")
         self.data['Project Type'] = self.data['Project Type'].fillna("Teacher Led")
         self.data['Project Subject Category Tree'] = self.data['Project Subject Category Tree'].fillna(" ")
-        
         #TODO: Add additional dataframes to data data
         #TODO: Add length of project to dataData
 
 
     def create_embeddings(self, embedding_type= settings.EMBEDDING_TYPE):
+        self.embedding_type = embedding_type
         logging.info("DataLoader - Create embeddings")
         if embedding_type == "fasttext":
             embeddingModel = fasttext.load_model(self.settings.EMBEDDING_FILE_FASTTEXT)
@@ -107,6 +109,13 @@ class DataLoader():
             temp = temp.drop('Project Essay', axis= 1)
             self.data = pd.merge(self.data, temp, on="Project ID", how= "left")
             # TODO parallelize this step for higher speed pandarallel
+
+        elif embedding_type == "DistilBERT":
+            temp = self.data[["Project ID", "Project Essay"]]
+            temp = temp.groupby("Project ID").first().reset_index()
+            temp["Project Essay Embedding"] = temp['Project Essay'].progress_apply(lambda x: tokenizer(x.lower())['input_ids'])
+            temp = temp.drop('Project Essay', axis=1)
+            self.data = pd.merge(self.data, temp, on="Project ID", how="left")
 
         else:
            Exception("Embedding needs to be defined, adjust settings.py")
@@ -149,6 +158,10 @@ class DataLoader():
         self.donors_dict = dict(zip(unique_donors['user_id'], unique_donors['Donor ID']))
         self.projs_dict = dict(zip(unique_projs['proj_id'], unique_projs['Project ID']))
 
+    def filter_interactions(self, min_number_of_donations: int):
+        interactions_filter = self.interactions["user_id"].value_counts().loc[self.interactions["user_id"].value_counts() > min_number_of_donations].reset_index()
+        self.interactions = self.interactions.loc[self.interactions["user_id"].isin(interactions_filter["index"])]
+
     def create_negative_interactions(self, percentage: float):
         logging.info("DataLoader - Create negative samples")
         self.negativeInteractions = pd.DataFrame(columns= ['Project ID', 'Donor ID', 'Donation Amount', 'user_id', 'proj_id'])
@@ -184,13 +197,13 @@ class DataLoader():
         return self.data
 
     def save_master_data(self, folder_path: str):
-        self.data.to_pickle(os.path.join(folder_path + 'master_data.pkl'), compression='gzip')
+        self.data.to_pickle(os.path.join(folder_path + 'master_data_{}.pkl.gz'.format(self.embedding_type)), compression='gzip')
 
     def return_interactions_data(self):
         return self.interactions.append(self.negativeInteractions)
 
     def save_interactions_data(self, folder_path: str):
-        self.interactions.append(self.negativeInteractions).to_pickle(os.path.join(folder_path + 'interactions_data.pkl'), compression='gzip')
+        self.interactions.append(self.negativeInteractions).to_pickle(os.path.join(folder_path + 'interactions_data.pkl.gz'), compression='gzip')
 
 
 

@@ -17,16 +17,21 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+import wandb
+
+from sklearn.metrics import roc_auc_score, accuracy_score, recall_score, precision_score
+
+
 class Recommender(nn.Module):
-    def __init__(self, n_donorid, n_projectid, embedding_size):
+    def __init__(self, n_donorid, n_projectid, embedding_size, linear_dim):
         super(Recommender, self).__init__()
         self.n_donorid = n_donorid
         self.n_projectid = n_projectid
         self.embedding_size = embedding_size
         self.EmbeddingDonor = nn.Embedding(num_embeddings=n_donorid, embedding_dim=embedding_size)
         self.EmbeddingProject = nn.Embedding(num_embeddings=n_projectid, embedding_dim=embedding_size)
-        self.linear1 = nn.Linear(embedding_size*2, 128)
-        self.linear2 = nn.Linear(128, 1)
+        self.linear1 = nn.Linear(embedding_size*2, linear_dim)
+        self.linear2 = nn.Linear(linear_dim, 1)
 
     def forward(self, input):
         donor_embedding = self.EmbeddingDonor(input[:, 0])
@@ -36,7 +41,7 @@ class Recommender(nn.Module):
         return y
 
 class baseRecommender():
-    def __init__(self, max_userid: int, max_movieid: int, embedding_size: int, device:str= "cpu", learning_rate: float= 1e-4):
+    def __init__(self, max_userid: int, max_movieid: int, embedding_size: int, linear_dim: int, device:str= "cpu", learning_rate: float= 1e-4):
         self.device = device
         self.max_userid = max_userid
         self.max_movieid = max_movieid
@@ -44,7 +49,7 @@ class baseRecommender():
         self.train = pd.DataFrame()
         self.test = pd.DataFrame()
         # initialize model
-        self.model = Recommender(max_userid, max_movieid, embedding_size)
+        self.model = Recommender(max_userid, max_movieid, embedding_size, linear_dim)
         self.model = self.model.to(device)
         # setup optimizer
         self.optimizer = optim.Adam(params=self.model.parameters(), lr=learning_rate)
@@ -70,6 +75,8 @@ class baseRecommender():
         self.model.train()
 
         for epoch in range(num_epochs):
+            print("Epoch {}".format(epoch))
+            print("Train")
             for batch_idx, data in enumerate(self.train_dataLoader):
                 target = data[:, -1].type(torch.FloatTensor).unsqueeze(1)
                 data = data[:, :-1]
@@ -83,8 +90,23 @@ class baseRecommender():
                 loss.backward()
                 self.optimizer.step()
 
-                if (batch_idx + 1) % 100 == 0:
+                if (batch_idx + 1) % 50 == 0:
+                    pred_threshold = 0.5
+                    pred = (output.detach().cpu() > pred_threshold).float()
+                    train_accuracy = accuracy_score(target.detach().cpu().numpy(), pred)
+                    train_recall = recall_score(target.detach().cpu().numpy(), pred)
+                    train_precision = precision_score(target.detach().cpu().numpy(), pred)
+                    train_rocauc_score = roc_auc_score(target.detach().cpu().numpy(), output.detach().cpu().numpy())
+                    wandb.log({'train_loss': loss.item(), 'train_accuracy': train_accuracy, 'train_recall': train_recall, 'train_precision': train_precision, 'train_rocauc_score': train_rocauc_score})
                     print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(epoch, (batch_idx + 1) * self.train_dataLoader.batch_size, len(self.train_dataLoader) * self.train_dataLoader.batch_size, 100. * (batch_idx + 1) / len(self.train_dataLoader), loss.item()))
+
+            print("Test")
+            prediction_df = self.evaluate_model()
+            test_accuracy = accuracy_score(prediction_df['target'], prediction_df['pred'])
+            test_recall = recall_score(prediction_df['target'], prediction_df['pred'])
+            test_precision = precision_score(prediction_df['target'], prediction_df['pred'])
+            test_rocauc_score = roc_auc_score(prediction_df['target'], prediction_df['prob'])
+            wandb.log({'test_accuracy': test_accuracy, 'test_recall': test_recall, 'test_precision': test_precision, 'test_rocauc_score': test_rocauc_score})
 
         # save the model
         torch.save(self.model.state_dict(), model_dir + "baseLineRecommender.pt")
@@ -109,7 +131,7 @@ class baseRecommender():
 
             evaluation_df = evaluation_df.append(pd.DataFrame({'target': target.cpu().detach().numpy().flatten(), 'pred': pred.cpu().detach().numpy().flatten(), 'prob': output.cpu().detach().numpy().flatten()}))
 
-            if (batch_idx + 1) % 100 == 0:
+            if (batch_idx + 1) % 50 == 0:
                 print('Evaluation: {}/{} ({:.0f}%)'.format((batch_idx + 1) * self.train_dataLoader.batch_size, len(self.test_dataLoader) * self.test_dataLoader.batch_size, 100. * (batch_idx + 1) / len(self.test_dataLoader)))
 
         return evaluation_df
