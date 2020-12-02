@@ -1,5 +1,6 @@
 {
   "use_sample": false,
+  "interactions_minProjectsperUser": 5,
 
   "embedding": null,
   "clustering": null,
@@ -7,7 +8,7 @@
   "model": "base",
 
   "learning_rate" : 1e-4,
-  "batch_size": 256,
+  "batch_size": 64,
   "num_train_epochs" : 2,
 
   "embedding_dim": 50,

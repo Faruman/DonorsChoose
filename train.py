@@ -17,16 +17,16 @@ wandb.init(project="DonorsChoose", config=args)
 args = wandb.config
 
 def main():
-    if args["use_sample"] == "True":
+    if args["use_sample"] == False:
         masterdata_path = os.path.join("./data/" + 'master_data_{}_{}.pkl.gz'.format(args["embedding"], args["clustering"]))
-        interactionsdata_path = os.path.join("./data/" + "interactions_data.pkl.gz")
+        interactionsdata_path = os.path.join("./data/" + "interactions_data_mp{}.pkl.gz".format(args["interactions_minProjectsperUser"]))
     else:
         masterdata_path = os.path.join("./data/sample/" + 'master_data_{}_{}.pkl.gz'.format(args["embedding"], args["clustering"]))
-        interactionsdata_path = os.path.join("./data/sample/" + "interactions_data.pkl.gz")
+        interactionsdata_path = os.path.join("./data/sample/" + "interactions_data_mp{}.pkl.gz".format(args["interactions_minProjectsperUser"]))
 
     if not (os.path.isfile(masterdata_path) & os.path.isfile(interactionsdata_path)):
         dataloader = DataLoader()
-        if args["use_sample"] == "True":
+        if args["use_sample"] == True:
             dataloader.load_from_file(donations_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\sample\donation_sample_V2.csv",
                                         donors_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\sample\donor_sample_V2.csv",
                                         projects_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\sample\project_sample_V2.csv",
@@ -48,7 +48,7 @@ def main():
         data = dataloader.return_master_data()
 
         dataloader.create_interactions()
-        dataloader.filter_interactions(2)
+        dataloader.filter_interactions(args["interactions_minProjectsperUser"]-1)
         dataloader.create_negative_interactions(1)
 
         interactions = dataloader.return_interactions_data()

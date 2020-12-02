@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 import wandb
 
 from sklearn.metrics import roc_auc_score, accuracy_score, recall_score, precision_score
-
+from sklearn.model_selection import train_test_split
 
 class Recommender(nn.Module):
     def __init__(self, n_donorid, n_projectid, embedding_size, linear_dim):
@@ -57,18 +57,20 @@ class baseRecommender():
         self.criterion = self.criterion.to(device)
 
 
-    def load_data(self, df: pd.DataFrame, train_portion:float= 0.8):
+    def load_data(self, df: pd.DataFrame, train_portion:float= 0.7):
         df["user_id"] = df["user_id"].astype(int)
         df["proj_id"] = df["proj_id"].astype(int)
-        self.train = df.sample(frac= train_portion, random_state= 42)
-        self.test = df.sample(frac= 1- train_portion, random_state=42)
+        self.train, temp = train_test_split(df, test_size=1-train_portion, shuffle=True)
+        self.test, self.val = train_test_split(temp, test_size=0.5, shuffle=True)
 
     def generate_objective(self, scoring_fct):
         self.train['score'] = self.train['Donation Amount'].apply(scoring_fct)
+        self.val['score'] = self.val['Donation Amount'].apply(scoring_fct)
         self.test['score'] = self.test['Donation Amount'].apply(scoring_fct)
 
     def generate_dataLoader(self, batch_size:int = 256):
         self.train_dataLoader = DataLoader(torch.LongTensor(self.train[['user_id', 'proj_id', 'score']].values), batch_size=batch_size)
+        self.val_dataLoader = DataLoader(torch.LongTensor(self.val[['user_id', 'proj_id', 'score']].values), batch_size=batch_size)
         self.test_dataLoader = DataLoader(torch.LongTensor(self.test[['user_id', 'proj_id', 'score']].values), batch_size=batch_size)
 
     def train_model(self, num_epochs:int, model_dir:str):
@@ -101,24 +103,32 @@ class baseRecommender():
                     print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(epoch, (batch_idx + 1) * self.train_dataLoader.batch_size, len(self.train_dataLoader) * self.train_dataLoader.batch_size, 100. * (batch_idx + 1) / len(self.train_dataLoader), loss.item()))
 
             print("Test")
-            prediction_df = self.evaluate_model()
-            test_accuracy = accuracy_score(prediction_df['target'], prediction_df['pred'])
-            test_recall = recall_score(prediction_df['target'], prediction_df['pred'])
-            test_precision = precision_score(prediction_df['target'], prediction_df['pred'])
-            test_rocauc_score = roc_auc_score(prediction_df['target'], prediction_df['prob'])
-            wandb.log({'test_accuracy': test_accuracy, 'test_recall': test_recall, 'test_precision': test_precision, 'test_rocauc_score': test_rocauc_score})
+            prediction_df = self.evaluate_model(self.val_dataLoader)
+            val_accuracy = accuracy_score(prediction_df['target'], prediction_df['pred'])
+            val_recall = recall_score(prediction_df['target'], prediction_df['pred'])
+            val_precision = precision_score(prediction_df['target'], prediction_df['pred'])
+            val_rocauc_score = roc_auc_score(prediction_df['target'], prediction_df['prob'])
+            wandb.log({'val_accuracy': val_accuracy, 'val_recall': val_recall, 'val_precision': val_precision, 'val_rocauc_score': val_rocauc_score})
 
         # save the model
+        prediction_df = self.evaluate_model(self.test_dataLoader)
+        test_accuracy = accuracy_score(prediction_df['target'], prediction_df['pred'])
+        test_recall = recall_score(prediction_df['target'], prediction_df['pred'])
+        test_precision = precision_score(prediction_df['target'], prediction_df['pred'])
+        test_rocauc_score = roc_auc_score(prediction_df['target'], prediction_df['prob'])
+        wandb.log({'test_accuracy': test_accuracy, 'test_recall': test_recall, 'test_precision': test_precision, 'test_rocauc_score': test_rocauc_score})
         torch.save(self.model.state_dict(), model_dir + "baseLineRecommender.pt")
 
     def load_model(self, model_path: str):
         self.model.load_state_dict(torch.load(model_path))
 
-    def evaluate_model(self, pred_threshold: float= 0.5):
+    def evaluate_model(self, dataLoader= None, pred_threshold: float= 0.5):
+        if not dataLoader:
+           dataLoader = self.test_dataLoader
         self.model.eval()
         evaluation_df = pd.DataFrame(columns=['target', 'pred', 'prob'])
 
-        for batch_idx, data in enumerate(self.test_dataLoader):
+        for batch_idx, data in enumerate(dataLoader):
             target = data[:, -1].type(torch.FloatTensor).unsqueeze(1)
             data = data[:, :-1]
 
