@@ -30,6 +30,8 @@ class Recommender(nn.Module):
         self.embedding_size = embedding_size
         self.EmbeddingDonor = nn.Embedding(num_embeddings=n_donorid, embedding_dim=embedding_size)
         self.EmbeddingProject = nn.Embedding(num_embeddings=n_projectid, embedding_dim=embedding_size)
+        #TODO: Add additional layers
+        #TODO: Use characteristics from the donors
         self.linear1 = nn.Linear(embedding_size*2, linear_dim)
         self.linear2 = nn.Linear(linear_dim, 1)
 
@@ -117,7 +119,7 @@ class baseRecommender():
         test_precision = precision_score(prediction_df['target'], prediction_df['pred'])
         test_rocauc_score = roc_auc_score(prediction_df['target'], prediction_df['prob'])
         wandb.log({'test_accuracy': test_accuracy, 'test_recall': test_recall, 'test_precision': test_precision, 'test_rocauc_score': test_rocauc_score})
-        torch.save(self.model.state_dict(), model_dir + "baseLineRecommender.pt")
+        #torch.save(self.model.state_dict(), model_dir + "baseLineRecommender.pt")
 
     def load_model(self, model_path: str):
         self.model.load_state_dict(torch.load(model_path))

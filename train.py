@@ -5,6 +5,7 @@ import pandas as pd
 
 from DataLoader_RecommenderSystem import DataLoader
 from base_RecommenderSystem import baseRecommender as BaselineRecommender
+from advanced_RecommenderSystem import advancedRecommender as AdvancedRecommender
 
 import json
 
@@ -63,21 +64,41 @@ def main():
     max_donorid = interactions['user_id'].drop_duplicates().max() + 1
     max_projid = interactions['proj_id'].drop_duplicates().max() + 1
 
-    if args["model"] == "base":
-        def scoring(amount: float):
-            if amount > 0:
-                return 1
-            else:
-                return 0
+    def scoring(amount: float):
+        if amount > 0:
+            return 1
+        else:
+            return 0
 
-        baseline_recommender = BaselineRecommender(max_donorid, max_projid, args["embedding_dim"], args["linear_dim"], device='cuda:0', learning_rate=args["learning_rate"])
+    if args["model"] == "base":
+        baseline_recommender = BaselineRecommender(max_donorid, max_projid, args["base_embedding_dim"], args["base_linear_dim"], device='cuda:0', learning_rate=args["learning_rate"])
         baseline_recommender.load_data(interactions)
         baseline_recommender.generate_objective(scoring)
         baseline_recommender.generate_dataLoader(batch_size=args["batch_size"])
         baseline_recommender.train_model(args["num_train_epochs"], "./model/")
-        #baseline_recommender.load_model('./model/baseLineRecommender.pt')
         prediction_df = baseline_recommender.evaluate_model()
 
+        print(prediction_df)
+
+    elif args["model"] == "advanced":
+        project_columns =    ['Teacher Project Posted Sequence', 'Project Type',
+                           'Project Subject Category Tree', 'Project Subject Subcategory Tree', 'Project Grade Level Category',
+                           'Project Resource Category', 'Project Cost', 'Project Fully Funded Date', 'School Metro Type', 'School Percentage Free Lunch', 'School State',
+                           'School Zip', 'School County', 'School District', 'Posted Year', 'Posted Month', 'Project Essay Embedding']
+        donor_columns =  ['Donor City', 'Donor State', 'Donor Is Teacher', 'Donor Zip',
+                           'Population', 'Population Density', 'Housing Units', 'Median Home Value', 'Land Area', 'Water Area',
+                           'Occupied Housing Units', 'Median Household Income', 'area_context_cluster']
+        project_history_column = ['previous projects']
+        n_project_history = 318
+
+        advanced_recommender =  AdvancedRecommender(donor_columns= donor_columns, donor_linear=args["advanced_donor_linear"], project_columns=project_columns, n_project_columns= len(project_columns)+299, project_linear=args["advanced_project_linear"], project_history_column=project_history_column, n_project_history=n_project_history, project_history_lstm_hidden=args["advanced_project_history_lstm_hidden"], linear1_dim=args["advanced_linear1_dim"], linear2_dim=args["advanced_linear2_dim"], device='cuda:0', learning_rate=args["learning_rate"])
+        advanced_recommender.load_data(data)
+        advanced_recommender.generate_objective(scoring)
+        advanced_recommender.generate_dataLoader(batch_size=args["batch_size"])
+        advanced_recommender.train_model(args["num_train_epochs"], "./model/")
+        prediction_df = advanced_recommender.evaluate_model()
+
+        print(prediction_df)
 
 if __name__ == "__main__":
     main()

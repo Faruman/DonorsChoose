@@ -1,0 +1,40 @@
+program: train.py
+method: bayes
+metric:
+  goal: maximize
+  name: val_rocauc_score
+parameters:
+  batch_size:
+    distribution: constant
+    value: 512
+  model:
+    distribution: constant
+    value: "advanced"
+  advanced_donor_linear:
+    distribution: int_uniform
+    max: 512
+    min: 8
+  advanced_project_linear:
+    distribution: int_uniform
+    max: 512
+    min: 8
+  advanced_project_history_lstm_hidden:
+    distribution: int_uniform
+    max: 512
+    min: 8
+  learning_rate:
+    distribution: uniform
+    max: 0.01
+    min: 1e-06
+  advanced_linear1_dim:
+    distribution: int_uniform
+    max: 1024
+    min: 64
+  advanced_linear2_dim:
+    distribution: int_uniform
+    max: 1024
+    min: 64
+  num_train_epochs:
+    distribution: int_uniform
+    max: 15
+    min: 1

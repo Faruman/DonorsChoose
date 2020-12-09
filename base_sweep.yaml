@@ -2,7 +2,7 @@ program: train.py
 method: bayes
 metric:
   goal: maximize
-  name: test_rocauc_score
+  name: val_rocauc_score
 parameters:
   num_train_epochs:
     max: 8
@@ -12,14 +12,17 @@ parameters:
     max: 0.001
     min: 0.000001
     distribution: uniform
-  embedding_dim:
+  base_embedding_dim:
     max: 512
     min: 8
     distribution: int_uniform
-  linear_dim:
+  base_linear_dim:
     max: 1024
     min: 64
     distribution: int_uniform
   batch_size:
     value: 64
+    distribution: constant
+  model:
+    value: "base"
     distribution: constant
