@@ -1,15 +1,15 @@
 {
-  "use_sample": true,
+  "use_sample": false,
   "interactions_minProjectsperUser": 5,
 
   "embedding": "fasttext",
   "clustering": "KMeans",
 
-  "model": "advanced",
+  "model": "base",
 
   "learning_rate" : 0.002487,
   "batch_size": 512,
-  "num_train_epochs" : 4,
+  "num_train_epochs" : 19,
 
   "base_embedding_dim": 20,
   "base_linear_dim": 235,

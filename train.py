@@ -40,17 +40,19 @@ def main():
                                         schools_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\schools.csv",
                                         external_path=r"D:\Programming\Python\DonorsChoose\data\EconomicIndicators\ZipCodes_AreaContext.csv")
         dataloader.do_preprocessing()
+        dataloader.filter_samples(1)
         if args["embedding"]:
             dataloader.create_embeddings(args["embedding"])
 
         if args["clustering"]:
             dataloader.create_clustering(clustering_type=args["clustering"])
 
-        data = dataloader.return_master_data()
+        dataloader.quantify(["Donor ID", "Project ID"], "D:\Programming\Python\DonorsChoose\model\labelEncoder", "D:\Programming\Python\DonorsChoose\model\labelNormalizer", ['Teacher Project Posted Sequence', 'Project Cost', 'School Percentage Free Lunch', 'Population', 'Population Density','Housing Units', 'Median Home Value', 'Land Area', 'Water Area','Occupied Housing Units', 'Median Household Income'])
+        dataloader.create_interaction_terms2(5)
+        dataloader.create_negative_samples(1)
 
         dataloader.create_interactions()
         dataloader.filter_interactions(args["interactions_minProjectsperUser"]-1)
-        dataloader.create_negative_interactions(1)
 
         interactions = dataloader.return_interactions_data()
 
@@ -78,12 +80,11 @@ def main():
         baseline_recommender.train_model(args["num_train_epochs"], "./model/")
         prediction_df = baseline_recommender.evaluate_model()
 
-        print(prediction_df)
 
     elif args["model"] == "advanced":
         project_columns =    ['Teacher Project Posted Sequence', 'Project Type',
                            'Project Subject Category Tree', 'Project Subject Subcategory Tree', 'Project Grade Level Category',
-                           'Project Resource Category', 'Project Cost', 'Project Fully Funded Date', 'School Metro Type', 'School Percentage Free Lunch', 'School State',
+                           'Project Resource Category', 'Project Cost', 'School Metro Type', 'School Percentage Free Lunch', 'School State',
                            'School Zip', 'School County', 'School District', 'Posted Year', 'Posted Month', 'Project Essay Embedding']
         donor_columns =  ['Donor City', 'Donor State', 'Donor Is Teacher', 'Donor Zip',
                            'Population', 'Population Density', 'Housing Units', 'Median Home Value', 'Land Area', 'Water Area',
@@ -98,7 +99,8 @@ def main():
         advanced_recommender.train_model(args["num_train_epochs"], "./model/")
         prediction_df = advanced_recommender.evaluate_model()
 
-        print(prediction_df)
+    print(prediction_df)
+    prediction_df.to_excel("evaluation_df.xlsx")
 
 if __name__ == "__main__":
     main()

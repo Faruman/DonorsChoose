@@ -39,7 +39,7 @@ class Recommender(nn.Module):
         donor_embedding = self.EmbeddingDonor(input[:, 0])
         project_embedding = self.EmbeddingProject(input[:, 1])
         input_vecs = torch.cat((donor_embedding, project_embedding), dim=1)
-        y = self.linear2(F.relu(self.linear1(input_vecs)))
+        y = torch.sigmoid(self.linear2(F.relu(self.linear1(input_vecs))))
         return y
 
 class baseRecommender():

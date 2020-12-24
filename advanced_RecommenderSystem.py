@@ -53,24 +53,28 @@ class Recommender(nn.Module):
         #TODO: Add additional layers
         #TODO: Use characteristics from the donors
 
-        self.linear_donor = nn.Linear(n_donor_columns, donor_linear)
+        self.linear1_donor = nn.Linear(n_donor_columns, donor_linear)
+        self.linear2_donor = nn.Linear(donor_linear, donor_linear)
 
-        self.linear_project = nn.Linear(n_project_columns, project_linear)
+        self.linear1_project = nn.Linear(n_project_columns, project_linear)
+        self.linear2_project = nn.Linear(project_linear, project_linear)
 
-        self.lstm_project_history = nn.LSTM(input_size= n_project_history, hidden_size=project_history_lstm_hidden, batch_first=True)
+        self.lstm_project_history = nn.LSTM(input_size= n_project_history, hidden_size=project_history_lstm_hidden, batch_first=True, num_layers=2)
 
         self.linear1 = nn.Linear(donor_linear+project_linear+project_history_lstm_hidden, linear1_dim)
         self.linear2 = nn.Linear(linear1_dim, linear2_dim)
-        self.linear3 = nn.Linear(linear2_dim, 1)
+        self.linear3 = nn.Linear(linear2_dim, linear2_dim)
+        self.linear4 = nn.Linear(linear2_dim, 1)
 
     def forward(self, donor, project, project_history):
-        donor_embedding = self.linear_donor(donor)
-        project_embedding = self.linear_project(project)
+        donor_embedding = F.relu(self.linear2_donor(F.relu(self.linear1_donor(donor))))
+        project_embedding = F.relu(self.linear2_project(F.relu(self.linear1_project(project))))
         history_embedding, (history_hn, history_cn) = self.lstm_project_history(project_history)
-        input_vecs = torch.cat((donor_embedding, project_embedding, history_hn[0]), dim=1)
+        input_vecs = torch.cat((donor_embedding, project_embedding, history_hn[-1]), dim=1)
         hidden = F.relu(self.linear1(input_vecs))
         hidden = F.relu(self.linear2(hidden))
-        y = torch.sigmoid(self.linear3(hidden))
+        hidden = F.relu(self.linear3(hidden))
+        y = torch.sigmoid(self.linear4(hidden))
         return y
 
 class advancedRecommender():
@@ -143,10 +147,10 @@ class advancedRecommender():
 
                 if (batch_idx + 1) % 50 == 0:
                     pred_threshold = 0.5
-                    pred = (output.detach().cpu() > pred_threshold).float()
+                    pred = (output.detach().cpu() > pred_threshold).numpy().astype(float)
                     train_accuracy = accuracy_score(target.detach().cpu().numpy(), pred)
-                    train_recall = recall_score(target.detach().cpu().numpy(), pred)
-                    train_precision = precision_score(target.detach().cpu().numpy(), pred)
+                    train_recall = recall_score(target.detach().cpu().numpy().astype(int), pred.astype(int))
+                    train_precision = precision_score(target.detach().cpu().numpy().astype(int), pred.astype(int))
                     train_rocauc_score = roc_auc_score(target.detach().cpu().numpy(), output.detach().cpu().numpy())
                     wandb.log({'train_loss': loss.item(), 'train_accuracy': train_accuracy, 'train_recall': train_recall, 'train_precision': train_precision, 'train_rocauc_score': train_rocauc_score})
                     print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(epoch, (batch_idx + 1) * self.train_dataLoader.batch_size, len(self.train_dataLoader) * self.train_dataLoader.batch_size, 100. * (batch_idx + 1) / len(self.train_dataLoader), loss.item()))

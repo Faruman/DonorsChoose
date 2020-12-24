@@ -26,6 +26,8 @@ from sklearn.preprocessing import LabelEncoder
 
 from pickle import dump
 
+from sklearn.preprocessing import Normalizer
+
 class DataLoader():
     def __init__(self, seed= 42):
         self.data = pd.DataFrame()
@@ -90,7 +92,7 @@ class DataLoader():
         self.data['Project Subject Category Tree'] = self.data['Project Subject Category Tree'].fillna(" ")
         self.data['Teacher Project Posted Sequence'] = self.data['Teacher Project Posted Sequence'].astype("int")
         #TODO: Drop all irrelevant columns
-        self.data = self.data.drop(["Donation ID", "Donation Included Optional Donation", "Donation Received Date", 'Teacher ID', 'Project Posted Date', 'School City', 'School Name', 'School ID', 'Project Expiration Date', 'Posted Date', 'Project Current Status'], axis=1)
+        self.data = self.data.drop(["Donation ID", "Donation Included Optional Donation", "Donation Received Date", 'Teacher ID', 'Project Posted Date', 'School City', 'School Name', 'School ID', 'Project Expiration Date', 'Posted Date', 'Project Current Status', 'Project Fully Funded Date'], axis=1)
         #TODO: Add additional dataframes to data data
         #TODO: Add length of project to dataData
         #remove nan
@@ -180,13 +182,16 @@ class DataLoader():
         self.data = self.data[self.data["Donor Cart Sequence"] > 1].progress_apply(get_previous_projects, axis=1, args=(projects_back, ))
         self.data = self.data.drop(["Donor Cart Sequence"], axis= 1)
 
-    def quantify(self, exclude, encoder_path):
+    def quantify(self, exclude, encoder_path, normalizer_path, columns_to_normalize=list()):
         for column in list(set(self.data.columns) - set(exclude)):
             if (not self.data[column].dtype in [np.float, np.int]) and (not "Embedding" in column):
                 encoder = LabelEncoder()
                 self.data[column] = encoder.fit_transform(self.data[column].astype(str))
                 dump(encoder, open(os.path.join(encoder_path, 'LabelEncoder_{}.pkl'.format(column)), 'wb'))
-
+            if column in columns_to_normalize:
+                normalizer = Normalizer()
+                self.data[column] = normalizer.fit_transform(self.data[column])
+                dump(normalizer, open(os.path.join(normalizer_path, 'LabelNormalizer_{}.pkl'.format(column)), 'wb'))
 
     def create_interaction_terms2(self, projects_back):
         #display projects a donor has donated for
@@ -310,7 +315,7 @@ class DataLoader():
 #dataloader.filter_samples(1)
 #dataloader.create_embeddings("fasttext")
 #dataloader.create_clustering(clustering_type="KMeans")
-#dataloader.quantify(["Donor ID", "Project ID"], "D:\Programming\Python\DonorsChoose\model\labelEncoder")
+#dataloader.quantify(["Donor ID", "Project ID"], "D:\Programming\Python\DonorsChoose\model\labelEncoder", "D:\Programming\Python\DonorsChoose\model\labelNormalizer", ['Teacher Project Posted Sequence', 'Project Cost', 'School Percentage Free Lunch', 'Population', 'Population Density','Housing Units', 'Median Home Value', 'Land Area', 'Water Area','Occupied Housing Units', 'Median Household Income'])
 #dataloader.create_interaction_terms2(5)
 #dataloader.create_negative_samples(1)
 
