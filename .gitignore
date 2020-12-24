@@ -3,3 +3,5 @@ data/
 /inspiration/
 /bin/
 /tableau/
+/wandb
+.ipynb_checkpoints/
