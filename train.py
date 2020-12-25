@@ -14,7 +14,7 @@ import gc
 
 with open(r"config.json") as f:
     args = json.load(f)
-wandb.init(project="DonorsChoose", config=args)
+wandb.init(project=args["wandb_project"], config=args)
 args = wandb.config
 
 def main():

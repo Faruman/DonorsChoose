@@ -1,6 +1,7 @@
 {
   "data_path": "D:/Programming/Python/DonorsChoose/data",
   "model_path": "D:/Programming/Python/DonorsChoose/model",
+  "wandb_project": "DonorsChoose",
   "use_sample": false,
   "interactions_minProjectsperUser": 5,
 
