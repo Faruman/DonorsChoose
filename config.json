@@ -1,8 +1,11 @@
 {
+  "data_path": "D:/Programming/Python/DonorsChoose/data",
+  "model_path": "D:/Programming/Python/DonorsChoose/model",
   "use_sample": false,
   "interactions_minProjectsperUser": 5,
 
   "embedding": "fasttext",
+  "embedding_file_fasttext": "D:/Programming/Python/DonorsChoose/data/fasttext/cc.en.300.bin",
   "clustering": "KMeans",
 
   "model": "base",

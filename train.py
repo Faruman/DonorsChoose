@@ -28,17 +28,17 @@ def main():
     if not (os.path.isfile(masterdata_path) & os.path.isfile(interactionsdata_path)):
         dataloader = DataLoader()
         if args["use_sample"] == True:
-            dataloader.load_from_file(donations_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\sample\donation_sample_V2.csv",
-                                        donors_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\sample\donor_sample_V2.csv",
-                                        projects_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\sample\project_sample_V2.csv",
-                                        schools_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\sample\school_sample_V2.csv",
-                                        external_path=r"D:\Programming\Python\DonorsChoose\data\EconomicIndicators\ZipCodes_AreaContext.csv")
+            dataloader.load_from_file(donations_path=args["data_path"] + r"\DonorsChoose\sample\donation_sample_V2.csv",
+                                        donors_path=args["data_path"] + r"\DonorsChoose\sample\donor_sample_V2.csv",
+                                        projects_path=args["data_path"] + r"\DonorsChoose\sample\project_sample_V2.csv",
+                                        schools_path=args["data_path"] + r"\DonorsChoose\sample\school_sample_V2.csv",
+                                        external_path=args["data_path"] + r"\EconomicIndicators\ZipCodes_AreaContext.csv")
         else:
-            dataloader.load_from_file(donations_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\donations.csv",
-                                        donors_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\donors.csv",
-                                        projects_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\projects.csv",
-                                        schools_path=r"D:\Programming\Python\DonorsChoose\data\DonorsChoose\schools.csv",
-                                        external_path=r"D:\Programming\Python\DonorsChoose\data\EconomicIndicators\ZipCodes_AreaContext.csv")
+            dataloader.load_from_file(donations_path=args["data_path"] + r"\DonorsChoose\donations.csv",
+                                        donors_path=args["data_path"] + r"\DonorsChoose\donors.csv",
+                                        projects_path=args["data_path"] + r"\DonorsChoose\projects.csv",
+                                        schools_path=args["data_path"] + r"\DonorsChoose\schools.csv",
+                                        external_path=args["data_path"] + r"\EconomicIndicators\ZipCodes_AreaContext.csv")
         dataloader.do_preprocessing()
         dataloader.filter_samples(1)
         if args["embedding"]:
@@ -47,7 +47,7 @@ def main():
         if args["clustering"]:
             dataloader.create_clustering(clustering_type=args["clustering"])
 
-        dataloader.quantify(["Donor ID", "Project ID"], "D:\Programming\Python\DonorsChoose\model\labelEncoder", "D:\Programming\Python\DonorsChoose\model\labelNormalizer", ['Teacher Project Posted Sequence', 'Project Cost', 'School Percentage Free Lunch', 'Population', 'Population Density','Housing Units', 'Median Home Value', 'Land Area', 'Water Area','Occupied Housing Units', 'Median Household Income'])
+        dataloader.quantify(["Donor ID", "Project ID"], args["model_path"] + "\labelEncoder", args["model_path"] + "\labelNormalizer", ['Teacher Project Posted Sequence', 'Project Cost', 'School Percentage Free Lunch', 'Population', 'Population Density','Housing Units', 'Median Home Value', 'Land Area', 'Water Area','Occupied Housing Units', 'Median Household Income'])
         dataloader.create_interaction_terms2(5)
         dataloader.create_negative_samples(1)
 
@@ -96,11 +96,11 @@ def main():
         advanced_recommender.load_data(data)
         advanced_recommender.generate_objective(scoring)
         advanced_recommender.generate_dataLoader(batch_size=args["batch_size"])
-        advanced_recommender.train_model(args["num_train_epochs"], "./model/")
+        advanced_recommender.train_model(args["num_train_epochs"], args["model_path"])
         prediction_df = advanced_recommender.evaluate_model()
 
     print(prediction_df)
-    prediction_df.to_excel("evaluation_df.xlsx")
+    #prediction_df.to_excel("evaluation_df.xlsx")
 
 if __name__ == "__main__":
     main()
