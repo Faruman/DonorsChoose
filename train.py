@@ -26,7 +26,7 @@ def main():
         interactionsdata_path = os.path.join("./data/sample/" + "interactions_data_mp{}.pkl.gz".format(args["interactions_minProjectsperUser"]))
 
     if not (os.path.isfile(masterdata_path) & os.path.isfile(interactionsdata_path)):
-        dataloader = DataLoader()
+        dataloader = DataLoader(settings=args)
         if args["use_sample"] == True:
             dataloader.load_from_file(donations_path=args["data_path"] + r"\DonorsChoose\sample\donation_sample_V2.csv",
                                         donors_path=args["data_path"] + r"\DonorsChoose\sample\donor_sample_V2.csv",

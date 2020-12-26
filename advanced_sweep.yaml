@@ -6,7 +6,7 @@ metric:
 parameters:
   batch_size:
     distribution: constant
-    value: 512
+    value: 256
   model:
     distribution: constant
     value: "advanced"

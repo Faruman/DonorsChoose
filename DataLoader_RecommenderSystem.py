@@ -3,8 +3,6 @@ import os
 import pandas as pd
 import numpy as np
 
-import settings
-
 import gc
 
 import fasttext
@@ -29,7 +27,7 @@ from pickle import dump
 from sklearn.preprocessing import Normalizer
 
 class DataLoader():
-    def __init__(self, seed= 42):
+    def __init__(self, settings: dict, seed= 42):
         self.data = pd.DataFrame()
         self.interactions = pd.DataFrame()
         self.negativeInteractions = pd.DataFrame()
@@ -100,13 +98,16 @@ class DataLoader():
 
         ##self.data = self.data.sample(10000)
 
-    def create_embeddings(self, embedding_type= settings.EMBEDDING_TYPE, embedding_columns= ["Project Essay"]) :
-        self.embedding_type = embedding_type
+    def create_embeddings(self, embedding_type= None, embedding_columns= ["Project Essay"]) :
+        if embedding_type:
+            self.embedding_type = embedding_type
+        else:
+            self.embedding_type = self.settings["embedding"]
         logging.info("DataLoader - Create embeddings")
 
         for embedding_column in embedding_columns:
             if embedding_type == "fasttext":
-                embeddingModel = fasttext.load_model(self.settings.EMBEDDING_FILE_FASTTEXT)
+                embeddingModel = fasttext.load_model(self.settings["embedding_file_fasttext"])
                 def generate_doc_vectors(s):
                     words = str(s).lower().split()
                     words = [w for w in words if w.isalpha()]
@@ -137,8 +138,10 @@ class DataLoader():
 
         self.data = self.data.drop(["Project Essay", "Project Short Description", 'Project Title', 'Project Need Statement'], axis=1)
 
-    def create_clustering(self, search_optimal_size:bool = False, clustering_type= settings.CLUSTERING_TYPE):
+    def create_clustering(self, search_optimal_size:bool = False, clustering_type= None):
         logging.info("DataLoader - Create clusters")
+        if not clustering_type:
+            clustering_type = self.settings["clustering"]
         if 'area_context_cluster' in self.external:
             features = list(set(self.external) - set(['id', 'area_context_cluster']))
         else:
@@ -158,7 +161,7 @@ class DataLoader():
                 plt.xlabel('Kmeans Inretia')
                 plt.show()
 
-            kmeans = KMeans(n_clusters= settings.KMEANS_CLUSTERS, init='k-means++', max_iter=300, n_init=10, random_state=0)
+            kmeans = KMeans(n_clusters= self.settings["kmeans_n_clusters"], init='k-means++', max_iter=300, n_init=10, random_state=0)
             self.data['area_context_cluster'] = kmeans.fit_predict(self.data[features].fillna(0))
             if not 'area_context_cluster' in self.external:
                 self.external.append('area_context_cluster')

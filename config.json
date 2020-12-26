@@ -8,6 +8,7 @@
   "embedding": "fasttext",
   "embedding_file_fasttext": "D:/Programming/Python/DonorsChoose/data/fasttext/cc.en.300.bin",
   "clustering": "KMeans",
+  "kmeans_n_clusters": 5,
 
   "model": "base",
 
