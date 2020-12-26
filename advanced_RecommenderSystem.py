@@ -48,58 +48,93 @@ class CustomDataset(torch.utils.data.Dataset):
         return (donor, project, history), objective
 
 class Recommender(nn.Module):
-    def __init__(self, n_donor_columns, donor_linear, n_project_columns, project_linear, n_project_history, project_history_lstm_hidden, linear1_dim, linear2_dim):
+    def __init__(self, n_donor_columns, donor_linear, n_donor_linear, n_project_columns, project_linear, n_project_linear, n_project_history, project_history_lstm_hidden, n_project_history_lstm, linear1_dim, n_linear1, linear2_dim, n_linear2):
         super(Recommender, self).__init__()
-        #TODO: Add additional layers
-        #TODO: Use characteristics from the donors
 
-        self.linear1_donor = nn.Linear(n_donor_columns, donor_linear)
-        self.linear2_donor = nn.Linear(donor_linear, donor_linear)
+        self.linear_donor_lst = []
+        for i in range (0,n_donor_linear):
+            if i == 0:
+                self.linear_donor_lst.append(nn.Linear(n_donor_columns, donor_linear))
+            else:
+                self.linear_donor_lst.append(nn.Linear(donor_linear, donor_linear))
 
-        self.linear1_project = nn.Linear(n_project_columns, project_linear)
-        self.linear2_project = nn.Linear(project_linear, project_linear)
+        self.linear_project_lst = []
+        for i in range(0, n_project_linear):
+            if i == 0:
+                self.linear_project_lst.append(nn.Linear(n_project_columns, project_linear))
+            else:
+                self.linear_project_lst.append(nn.Linear(project_linear, project_linear))
 
-        self.lstm_project_history = nn.LSTM(input_size= n_project_history, hidden_size=project_history_lstm_hidden, batch_first=True, num_layers=2)
+        self.lstm_project_history = nn.LSTM(input_size= n_project_history, hidden_size=project_history_lstm_hidden, batch_first=True, num_layers=n_project_history_lstm)
 
-        self.linear1 = nn.Linear(donor_linear+project_linear+project_history_lstm_hidden, linear1_dim)
-        self.linear2 = nn.Linear(linear1_dim, linear2_dim)
-        self.linear3 = nn.Linear(linear2_dim, linear2_dim)
-        self.linear4 = nn.Linear(linear2_dim, 1)
+        self.linear1_lst = []
+        for i in range(0, n_linear1):
+            if i == 0:
+                self.linear1_lst.append(nn.Linear(donor_linear+project_linear+project_history_lstm_hidden, linear1_dim))
+            else:
+                self.linear1_lst.append(nn.Linear(linear1_dim, linear1_dim))
+
+        self.linear2_lst = []
+        for i in range(0, n_linear1):
+            if i == 0:
+                self.linear2_lst.append(nn.Linear(linear1_dim, linear2_dim))
+            else:
+                self.linear2_lst.append(nn.Linear(linear2_dim, linear2_dim))
+
+        self.linear_final = nn.Linear(linear2_dim, 1)
 
     def forward(self, donor, project, project_history):
-        donor_embedding = F.relu(self.linear2_donor(F.relu(self.linear1_donor(donor))))
-        project_embedding = F.relu(self.linear2_project(F.relu(self.linear1_project(project))))
+        for i, linear_donor in enumerate(self.linear_donor_lst):
+            if i == 0:
+                donor_embedding = F.relu(linear_donor(donor))
+            else:
+                donor_embedding = F.relu(linear_donor(donor_embedding))
+        for i, linear_project in enumerate(self.linear_project_lst):
+            if i == 0:
+                project_embedding = F.relu(linear_project(project))
+            else:
+                project_embedding = F.relu(linear_project(project_embedding))
         history_embedding, (history_hn, history_cn) = self.lstm_project_history(project_history)
         input_vecs = torch.cat((donor_embedding, project_embedding, history_hn[-1]), dim=1)
-        hidden = F.relu(self.linear1(input_vecs))
-        hidden = F.relu(self.linear2(hidden))
-        hidden = F.relu(self.linear3(hidden))
+        for i, linear1 in enumerate(self.linear1_lst):
+            if i == 0:
+                hidden = F.relu(linear1(input_vecs))
+            else:
+                hidden = F.relu(linear1(hidden))
+        for i, linear2 in enumerate(self.linear2_lst):
+                hidden = F.relu(linear2(hidden))
         y = torch.sigmoid(self.linear4(hidden))
         return y
 
 class advancedRecommender():
-    def __init__(self, donor_columns: list, donor_linear:int, project_columns:list, n_project_columns:int, project_linear:int, project_history_column:list, n_project_history:int, project_history_lstm_hidden:int, linear1_dim:int, linear2_dim:int, device:str= "cpu", learning_rate: float= 1e-4):
+    def __init__(self, donor_columns: list, donor_linear:int, n_donor_linear:int, project_columns:list, n_project_columns:int, project_linear:int, n_project_linear:int, project_history_column:list, n_project_history:int, project_history_lstm_hidden:int, n_project_history_lstm:int, linear1_dim:int, n_linear1: int, linear2_dim:int, n_linear2:int, device:str= "cpu", learning_rate: float= 1e-4):
         self.device = device
 
         self.donor_columns = donor_columns
         self.n_donor_columns = len(donor_columns)
         self.donor_linear = donor_linear
+        self.n_donor_linear = n_donor_linear
 
         self.project_columns = project_columns
         self.n_project_columns = n_project_columns
         self.project_linear = project_linear
+        self.n_project_linear = n_project_linear
 
         self.project_history_column = project_history_column
         self.n_project_history = n_project_history
         self.project_history_lstm_hidden = project_history_lstm_hidden
+        self.n_project_history_lstm = n_project_history_lstm
 
         self.linear1_dim = linear1_dim
+        self.n_linear1 = n_linear1
         self.linear2_dim = linear2_dim
+        self.n_linear2 = n_linear2
+
         self.train = pd.DataFrame()
         self.val = pd.DataFrame()
         self.test = pd.DataFrame()
         # initialize model
-        self.model = Recommender(self.n_donor_columns, self.donor_linear, self.n_project_columns, self.project_linear, self.n_project_history, self.project_history_lstm_hidden, self.linear1_dim, self.linear2_dim)
+        self.model = Recommender(self.n_donor_columns, self.donor_linear, self.n_donor_linear, self.n_project_columns, self.project_linear, self.n_project_linear, self.n_project_history, self.project_history_lstm_hidden, self.n_project_history_lstm, self.linear1_dim, self.n_linear1, self.linear2_dim, self.n_linear2)
         self.model = self.model.to(device)
         # setup optimizer
         self.optimizer = optim.Adam(params=self.model.parameters(), lr=learning_rate)

@@ -92,7 +92,7 @@ def main():
         project_history_column = ['previous projects']
         n_project_history = 318
 
-        advanced_recommender =  AdvancedRecommender(donor_columns= donor_columns, donor_linear=args["advanced_donor_linear"], project_columns=project_columns, n_project_columns= len(project_columns)+299, project_linear=args["advanced_project_linear"], project_history_column=project_history_column, n_project_history=n_project_history, project_history_lstm_hidden=args["advanced_project_history_lstm_hidden"], linear1_dim=args["advanced_linear1_dim"], linear2_dim=args["advanced_linear2_dim"], device='cuda:0', learning_rate=args["learning_rate"])
+        advanced_recommender =  AdvancedRecommender(donor_columns= donor_columns, donor_linear=args["advanced_donor_linear"], n_donor_linear=args["advanced_n_donor_linear"], project_columns=project_columns, n_project_columns= len(project_columns)+299, project_linear=args["advanced_project_linear"], n_project_linear=args["advanced_n_project_linear"], project_history_column=project_history_column, n_project_history=n_project_history, project_history_lstm_hidden=args["advanced_project_history_lstm_hidden"], n_project_history_lstm=args["advanced_n_project_history_lstm"], linear1_dim=args["advanced_linear1_dim"], n_linear1=args["advanced_n_linear1"], linear2_dim=args["advanced_linear2_dim"], n_linear2=args["advanced_n_linear2"], device='cuda:0', learning_rate=args["learning_rate"])
         advanced_recommender.load_data(data)
         advanced_recommender.generate_objective(scoring)
         advanced_recommender.generate_dataLoader(batch_size=args["batch_size"])

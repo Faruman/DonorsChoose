@@ -19,8 +19,13 @@
   "base_linear_dim": 235,
 
   "advanced_donor_linear": 32,
+  "advanced_n_donor_linear": 1,
   "advanced_project_linear": 32,
+  "advanced_n_project_linear": 1,
   "advanced_project_history_lstm_hidden": 32,
+  "advanced_n_project_history_lstm": 1,
   "advanced_linear1_dim": 256,
-  "advanced_linear2_dim": 256
+  "advanced_n_linear1": 1,
+  "advanced_linear2_dim": 256,
+  "advanced_n_linear2": 1
 }

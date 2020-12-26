@@ -14,27 +14,47 @@ parameters:
     distribution: int_uniform
     max: 512
     min: 8
+  advanced_n_donor_linear:
+    distribution: int_uniform
+    max: 4
+    min: 1
   advanced_project_linear:
     distribution: int_uniform
     max: 512
     min: 8
+  advanced_n_project_linear:
+    distribution: int_uniform
+    max: 4
+    min: 1
   advanced_project_history_lstm_hidden:
     distribution: int_uniform
     max: 512
     min: 8
-  learning_rate:
-    distribution: uniform
-    max: 0.01
-    min: 1e-06
+  advanced_n_project_history_lstm:
+    distribution: int_uniform
+    max: 4
+    min: 1
   advanced_linear1_dim:
     distribution: int_uniform
     max: 1024
     min: 64
+  advanced_n_linear1:
+    distribution: int_uniform
+    max: 5
+    min: 1
   advanced_linear2_dim:
     distribution: int_uniform
     max: 1024
     min: 64
+  advanced_n_linear2:
+    distribution: int_uniform
+    max: 5
+    min: 1
+  learning_rate:
+    distribution: uniform
+    max: 0.01
+    min: 1e-06
   num_train_epochs:
     distribution: int_uniform
-    max: 15
+    max: 10
     min: 1
