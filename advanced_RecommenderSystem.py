@@ -3,8 +3,6 @@ import os
 import pandas as pd
 import numpy as np
 
-import settings
-
 import gc
 
 import logging
