@@ -43,6 +43,7 @@ Furthermore, the configuration also allows you to select the model to be run and
 
 While the base model just creates embeddings based on the cooccurance of models and projects, the adavanced model tries to incoorporate more of the information given for projects and donors.
 
+
 ### Base Model
 
 ```Python
@@ -67,19 +68,26 @@ class Recommender(nn.Module):
 
 Next a wandb sweep was done to find the optimal parameter combination. This sweeps can be seen bellow:
 
-[Picture: Parameter Sweep Base Model](https://github.com/Faruman/DonorsChoose/blob/master/imgs/SweepBaseRecommenderSystem.png?raw=true)
+![Picture: Parameter Sweep Base Model](https://github.com/Faruman/DonorsChoose/blob/master/imgs/SweepBaseRecommenderSystem.png?raw=true)
 
-From the XX runs the best parameter combination was:
+From the 27 runs the best parameter combination was:
 
 ```
-
+embedding_dim: 20
+learning_rate: 0.004287
+linear_dim: 235
+num_train_epochs: 22
 ```
 
 Achieving the following scores:
 
 ```
-
+test_rocauc_score: 0.7115
+test_accuracy: 0.6500
+test_precision: 0.6646
+test_recall: 0.6050
 ```
+
 
 ### Advanced Model
 
