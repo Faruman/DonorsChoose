@@ -193,7 +193,7 @@ class DataLoader():
                 dump(encoder, open(os.path.join(encoder_path, 'LabelEncoder_{}.pkl'.format(column)), 'wb'))
             if column in columns_to_normalize:
                 normalizer = Normalizer()
-                self.data[column] = normalizer.fit_transform(self.data[column])
+                self.data[column] = normalizer.fit_transform(self.data[column].values.reshape(-1, 1))
                 dump(normalizer, open(os.path.join(normalizer_path, 'LabelNormalizer_{}.pkl'.format(column)), 'wb'))
 
     def create_interaction_terms2(self, projects_back):
@@ -238,7 +238,7 @@ class DataLoader():
             negative_samples['Donation Amount'] = 0
             projects = self.data.sample(self.data.shape[0]).loc[:, ['Project ID', 'Teacher Project Posted Sequence', 'Project Type',
                                            'Project Subject Category Tree', 'Project Subject Subcategory Tree', 'Project Grade Level Category',
-                                           'Project Resource Category', 'Project Cost', 'Project Fully Funded Date', 'School Metro Type', 'School Percentage Free Lunch', 'School State',
+                                           'Project Resource Category', 'Project Cost', 'School Metro Type', 'School Percentage Free Lunch', 'School State',
                                            'School Zip', 'School County', 'School District', 'Posted Year', 'Posted Month', 'Project Essay Embedding']].groupby(['Project ID']).first()
             donors = self.data.sample(self.data.shape[0]).loc[:, ['Donor ID', 'Donor City', 'Donor State', 'Donor Is Teacher', 'Donor Zip',
                                        'Population', 'Population Density', 'Housing Units', 'Median Home Value', 'Land Area', 'Water Area',

@@ -55,6 +55,7 @@ class Recommender(nn.Module):
                 self.linear_donor_lst.append(nn.Linear(n_donor_columns, donor_linear))
             else:
                 self.linear_donor_lst.append(nn.Linear(donor_linear, donor_linear))
+        self.linear_donor_lst = nn.ModuleList(self.linear_donor_lst)
 
         self.linear_project_lst = []
         for i in range(0, n_project_linear):
@@ -62,6 +63,7 @@ class Recommender(nn.Module):
                 self.linear_project_lst.append(nn.Linear(n_project_columns, project_linear))
             else:
                 self.linear_project_lst.append(nn.Linear(project_linear, project_linear))
+        self.linear_project_lst = nn.ModuleList(self.linear_project_lst)
 
         self.lstm_project_history = nn.LSTM(input_size= n_project_history, hidden_size=project_history_lstm_hidden, batch_first=True, num_layers=n_project_history_lstm)
 
@@ -71,6 +73,7 @@ class Recommender(nn.Module):
                 self.linear1_lst.append(nn.Linear(donor_linear+project_linear+project_history_lstm_hidden, linear1_dim))
             else:
                 self.linear1_lst.append(nn.Linear(linear1_dim, linear1_dim))
+        self.linear1_lst = nn.ModuleList(self.linear1_lst)
 
         self.linear2_lst = []
         for i in range(0, n_linear1):
@@ -78,6 +81,7 @@ class Recommender(nn.Module):
                 self.linear2_lst.append(nn.Linear(linear1_dim, linear2_dim))
             else:
                 self.linear2_lst.append(nn.Linear(linear2_dim, linear2_dim))
+        self.linear2_lst = nn.ModuleList(self.linear2_lst)
 
         self.linear_final = nn.Linear(linear2_dim, 1)
 
@@ -101,7 +105,7 @@ class Recommender(nn.Module):
                 hidden = F.relu(linear1(hidden))
         for i, linear2 in enumerate(self.linear2_lst):
                 hidden = F.relu(linear2(hidden))
-        y = torch.sigmoid(self.linear4(hidden))
+        y = torch.sigmoid(self.linear_final(hidden))
         return y
 
 class advancedRecommender():

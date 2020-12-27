@@ -54,6 +54,7 @@ def main():
         dataloader.create_interactions()
         dataloader.filter_interactions(args["interactions_minProjectsperUser"]-1)
 
+        data = dataloader.return_master_data()
         interactions = dataloader.return_interactions_data()
 
         dataloader.save_master_data(data_path= masterdata_path)
@@ -90,7 +91,7 @@ def main():
                            'Population', 'Population Density', 'Housing Units', 'Median Home Value', 'Land Area', 'Water Area',
                            'Occupied Housing Units', 'Median Household Income', 'area_context_cluster']
         project_history_column = ['previous projects']
-        n_project_history = 318
+        n_project_history = 317
 
         advanced_recommender =  AdvancedRecommender(donor_columns= donor_columns, donor_linear=args["advanced_donor_linear"], n_donor_linear=args["advanced_n_donor_linear"], project_columns=project_columns, n_project_columns= len(project_columns)+299, project_linear=args["advanced_project_linear"], n_project_linear=args["advanced_n_project_linear"], project_history_column=project_history_column, n_project_history=n_project_history, project_history_lstm_hidden=args["advanced_project_history_lstm_hidden"], n_project_history_lstm=args["advanced_n_project_history_lstm"], linear1_dim=args["advanced_linear1_dim"], n_linear1=args["advanced_n_linear1"], linear2_dim=args["advanced_linear2_dim"], n_linear2=args["advanced_n_linear2"], device='cuda:0', learning_rate=args["learning_rate"])
         advanced_recommender.load_data(data)

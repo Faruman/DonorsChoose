@@ -10,7 +10,7 @@
   "clustering": "KMeans",
   "kmeans_n_clusters": 5,
 
-  "model": "base",
+  "model": "advanced",
 
   "learning_rate" : 0.002487,
   "batch_size": 512,
